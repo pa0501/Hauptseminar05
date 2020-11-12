@@ -18,7 +18,7 @@ import parkingRobot.hsamr0.HmiPLT;
 import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
-
+//PUSH TES
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students of electrical engineering
  * with specialization 'automation, measurement and control'.
