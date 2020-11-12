@@ -1,11 +1,12 @@
 package parkingRobot.hsamr0;
 
-
 import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
 import parkingRobot.IMonitor;
 import parkingRobot.IPerception;
 import parkingRobot.IPerception.*;
+import lejos.nxt.Button;
+import lejos.nxt.LCD;
 import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
 
@@ -57,6 +58,9 @@ public class ControlRST implements IControl {
     int leftMotorPower = 0;
 	int rightMotorPower = 0;
 	
+	double w_motor_left = 0;
+	double w_motor_right = 0;
+	
 	double velocity = 0.0;
 	double angularVelocity = 0.0;
 	
@@ -73,6 +77,9 @@ public class ControlRST implements IControl {
 	
     double currentDistance = 0.0;
     double Distance = 0.0;
+    
+    double radius_tire_mm = 225;
+    double distance_tires_mm = 120;
   
 	
 	/**
@@ -119,6 +126,8 @@ public class ControlRST implements IControl {
 	 */
 	public void setVelocity(double velocity) {
 		this.velocity = velocity;
+		
+		
 	}
 
 	/**
@@ -196,8 +205,137 @@ public class ControlRST implements IControl {
 	/**
 	 * update parameters during VW Control Mode
 	 */
+	
+	double kp = 20;
+	
+	// kp = 60, ki = 1.05
+	
+	// PIDData structs have to be initialized here so that their integral 
+	// value stays constant.
+	
+	PIDData data_right = new PIDData(0, 0, 60, 1.05);
+	PIDData data_left = new PIDData(0, 0, 60, 1.05);
+	
 	private void update_VWCTRL_Parameter(){
 		setPose(navigation.getPose());
+	
+		// Measure angle difference and time delta between measurements
+		AngleDifferenceMeasurement meas_left = perception.getControlLeftEncoder().getEncoderMeasurement();
+		AngleDifferenceMeasurement meas_right = perception.getControlRightEncoder().getEncoderMeasurement();
+		
+		// Calculate angular velocities
+		double w_meas_left = meas_left.getAngleSum() / meas_left.getDeltaT();
+		double w_meas_right = meas_right.getAngleSum() / meas_right.getDeltaT();
+
+		// Set PID Data
+		data_right.setpoint = w_motor_right;
+		data_right.processVariable = w_meas_right;
+
+		data_left.setpoint = w_motor_left;
+		data_left.processVariable = w_meas_left;
+
+		// LCD feedback for debugging
+		LCD.drawString("WR 0." + (int) (w_meas_right * 100) + " 0." + (int) (w_motor_right * 100), 0, 0);
+		LCD.drawString("WL 0." + (int) (w_meas_left * 100) + " 0." + (int) (w_motor_left * 100), 0, 1);
+		
+		// Adjust motor power based on calculated data
+		leftMotorPower += PIDController.pi_ctrl(data_left);
+		rightMotorPower += PIDController.pi_ctrl(data_right);
+
+		leftMotor.setPower(leftMotorPower);
+		rightMotor.setPower(rightMotorPower);
+		
+		// LCD feedback for debugging
+		LCD.drawString(PIDController.pi_ctrl(data_left) + "", 0, 3);
+		LCD.drawString(PIDController.pi_ctrl(data_left) + "", 0, 4);
+		
+		// GUI zum Testen!
+		menu_update();
+		
+	}
+	
+	int btn_right_prev = 0;
+	int btn_left_prev = 0;
+	int btn_enter_prev = 0;
+	int btn_back_prev = 0;
+	
+	int selection = 0;	// 0 - none; 1 - velocity; 2 - angular;
+	int cursor = 1;	// 0 - none; 1 - velocity; 2 - angular;
+	
+	// GUI - Nicht in der Aufgabe gefordert!
+	
+	public void menu_update() {
+		if (Button.ENTER.isDown()) {
+			if (btn_enter_prev == 1) {
+				btn_enter_prev = 0;
+				return;
+			} else {
+				btn_enter_prev = 1;
+			}
+		}
+		
+		if (Button.LEFT.isDown()) {
+			if (btn_left_prev == 1) {
+				btn_left_prev = 0;
+				return;
+			} else {
+				btn_left_prev = 1;
+			}
+		} 
+		
+		if (Button.RIGHT.isDown()) {
+			if (btn_right_prev == 1) {
+				btn_right_prev = 0;
+				return;
+			} else {
+				btn_right_prev = 1;
+			}
+		} 
+		
+		
+		if (Button.ENTER.isDown()) {
+			if (cursor == 0) {
+				cursor = selection;
+				selection = 0;
+			} else {
+				selection = cursor;
+				cursor = 0;
+			}
+		} else if (Button.RIGHT.isDown()) {
+			if (cursor == 1) {
+				cursor = 2;
+			} else if (cursor == 2) {
+				cursor = 1;
+			}
+			
+			
+			if (selection == 1) {
+				velocity += 5;
+			} else if (selection == 2) {
+				angularVelocity+=0.1;
+			}
+		} else if (Button.LEFT.isDown()) {
+			if (cursor == 1) {
+				cursor = 2;
+			} else if (cursor == 2) {
+				cursor = 1;
+			}
+			
+			if (selection == 1) {
+				velocity -= 5;
+			} else if (selection == 2) {
+				angularVelocity-=0.1;
+			}
+		}
+
+		LCD.drawString("  vel = " + (int) velocity + "    ", 0, 5);
+		LCD.drawString("  ang = " + angularVelocity + "    ", 0, 6);
+		
+		if (cursor == 1) {
+			LCD.drawString("> ", 0, 5);
+		} else if (cursor == 2) {
+			LCD.drawString("> ", 0, 6);
+		}
 	}
 	
 	/**
@@ -330,9 +468,45 @@ public class ControlRST implements IControl {
      * calculates the left and right angle speed of the both motors with given velocity 
      * and angle velocity of the robot
      * @param v velocity of the robot
-     * @param omega angle velocity of the robot
+     * @param w angle velocity of the robot
      */
-	private void drive(double v, double omega){
-		//Aufgabe 3.2
+	
+	private void drive(double v, double w){
+		double vr_mms = v + w*distance_tires_mm/2;
+		double vl_mms = v - w*distance_tires_mm/2;
+		
+		
+		double wr = vr_mms / radius_tire_mm;
+		double wl = vl_mms / radius_tire_mm;
+	
+		
+		w_motor_left = wl;
+		w_motor_right = wr;
+		
+		leftMotor.forward();
+		rightMotor.forward();
+		
+	}
+	
+	private void driveRaw(double v, double w) {
+		double vr_mms = v + 1/2*w*distance_tires_mm;
+		double vl_mms = v - 1/2*w*distance_tires_mm;
+		
+		double wr = vr_mms / radius_tire_mm;
+		double wl = vl_mms / radius_tire_mm;
+		
+		rightMotor.setPower(getPowerForW_M1(wr));
+		leftMotor.setPower(getPowerForW_M2(wl));
+
+		//LCD.drawString(wr + " -> " + getPowerForW_M1(wr), 0, 0);
+		//LCD.drawString(wl + " -> " + getPowerForW_M1(wl), 0, 1);
+	}
+	
+	private int getPowerForW_M1(double w) {
+		return (int) (1/8.24 * (w + 50));
+	}
+	
+	private int getPowerForW_M2(double w) {
+		return (int) (1/8.67 * (w + 8));
 	}
 }
