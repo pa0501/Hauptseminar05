@@ -9,7 +9,7 @@ import lejos.nxt.Button;
 import lejos.nxt.LCD;
 import lejos.nxt.NXTMotor;
 import parkingRobot.INavigation;
-//PUSH TEST
+
 /**
  * Main class for control module
  *
