@@ -234,6 +234,8 @@ public class ControlRST implements IControl {
 		data_left.setpoint = w_motor_left;
 		data_left.processVariable = w_meas_left;
 
+		// Hallo
+		
 		// LCD feedback for debugging
 		LCD.drawString("WR 0." + (int) (w_meas_right * 100) + " 0." + (int) (w_motor_right * 100), 0, 0);
 		LCD.drawString("WL 0." + (int) (w_meas_left * 100) + " 0." + (int) (w_motor_left * 100), 0, 1);
