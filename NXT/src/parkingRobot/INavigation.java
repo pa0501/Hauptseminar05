@@ -68,7 +68,7 @@ public interface INavigation {
 	 * - slot status (whether it is/is not suitable for parking),
 	 * - measured position of the slot begin front boundary, 
 	 * - measured position of the slot back boundary,
-	 * - quality of parking slot measurement (die Güte der Parklückenvermessung).
+	 * - quality of parking slot measurement (die Gï¿½te der Parklï¿½ckenvermessung).
 	 * 
 	 * @author IfA
 	 */
@@ -118,7 +118,7 @@ public interface INavigation {
 		/**
 		 * generate a ParkingSlot object without initialization of data members.
 		 */
-		ParkingSlot(int ID){
+		public ParkingSlot(int ID){
 			this.ID = ID;
 		}
 		/**
