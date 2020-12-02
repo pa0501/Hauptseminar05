@@ -126,34 +126,41 @@ public class PerceptionPMP implements IPerception {
 	}
 	
 	public synchronized void calibrateLineSensors(){
-		LCD.clear();
+		/*LCD.clear();
 		LCD.drawString("Kalibriere", 0, 0);
 		LCD.drawString("Liniensensor", 0, 1);
 		LCD.drawString("Weisser Untergr.", 0, 2);
 		LCD.drawString("wenn position.", 0, 3);
-		LCD.drawString("Enter Druecken", 0, 4);
-		while(!Button.ENTER.isDown()){
+		LCD.drawString("Enter Druecken", 0, 4);*/
+		/*while(!Button.ENTER.isDown()){
 			LCD.drawString("Sensorwert r:"+ (this.RightLineSensor), 0, 6);
 			LCD.drawString("Sensorwert l:"+ (this.LeftLineSensor), 0, 7);
 			updateSensors();
 		}
 		Button.ENTER.waitForPressAndRelease();
 		this.LSrwhite = this.RightLineSensor;
-		this.LSlwhite = this.LeftLineSensor;
-		LCD.clear();
+		this.LSlwhite = this.LeftLineSensor;*/
+		
+		this.LSrwhite = 57;
+		this.LSlwhite = 57;
+		
+		/*LCD.clear();
 		LCD.drawString("Kalibriere", 0, 0);
 		LCD.drawString("Liniensensor", 0, 1);
 		LCD.drawString("Schwarzer Untergr.", 0, 2);
 		LCD.drawString("wenn position.", 0, 3);
 		LCD.drawString("Enter Druecken", 0, 4);
-		while(!Button.ENTER.isDown()){
+		/*while(!Button.ENTER.isDown()){
 			LCD.drawString("Sensorwert r:"+ (this.RightLineSensor), 0, 6);
 			LCD.drawString("Sensorwert l:"+ (this.LeftLineSensor), 0, 7);
 			updateSensors();
 		}
 		Button.ENTER.waitForPressAndRelease();
 		this.LSrblack = this.RightLineSensor;
-		this.LSlblack = this.LeftLineSensor;
+		this.LSlblack = this.LeftLineSensor;*/
+		
+		this.LSrblack = 36;
+		this.LSlblack = 36;
 	}
 	
 	public void showSensorData() {
