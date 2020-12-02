@@ -18,7 +18,7 @@ import parkingRobot.hsamr0.HmiPLT;
 import parkingRobot.hsamr0.NavigationAT;
 import parkingRobot.hsamr0.PerceptionPMP;
 
-//PUSH TEST v2
+
 /**
  * Main class for 'Hauptseminar AMR' project 'autonomous parking' for students of electrical engineering
  * with specialization 'automation, measurement and control'.
@@ -49,6 +49,10 @@ public class GuidanceAT {
 		DRIVING,
 		/**
 		 * indicates that robot is performing an parking maneuver
+		 */
+		PARKING,
+		/**
+		 * indicates that robot is inactive due to Pause-button is pressed
 		 */
 		INACTIVE,
 		/**
@@ -89,12 +93,26 @@ public class GuidanceAT {
 	static Line[] map = {line0, line1, line2, line3, line4, line5, line6, line7};
 	
 	
+	
+
+	public double Pfadgenerator(Point P0, Point P1, Point P2, Point P3 ){
+		double x = P0.getx();
+		double y = P0.gety();
+		double t = 0;
+		double dt = 0.1;
+		
+		
+		return x;
+	}
+	
+	//
 	/**
 	 * main method of project 'ParkingRobot'
 	 * 
 	 * @param args standard string arguments for main method
 	 * @throws Exception exception for thread management
 	 */
+	
 	public static void main(String[] args) throws Exception {		
         currentStatus = CurrentStatus.INACTIVE;
         lastStatus    = CurrentStatus.EXIT;
@@ -119,7 +137,40 @@ public class GuidanceAT {
 			showData(navigation, perception);
 			
         	switch ( currentStatus )
-        	{
+        	{	
+        	case PARKING:
+				// MONITOR (example)
+//				monitor.writeGuidanceComment("Guidance_Driving");
+				
+				//Into action
+				if ( lastStatus != CurrentStatus.PARKING ){
+					control.setCtrlMode(ControlMode.PARK_CTRL);
+				}
+				
+				//While action				
+				{
+					//nothing to do here
+				}					
+				
+				//State transition check
+				lastStatus = currentStatus;
+				if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
+					currentStatus = CurrentStatus.INACTIVE;
+				}else if ( Button.ENTER.isDown() ){
+					currentStatus = CurrentStatus.INACTIVE;
+					while(Button.ENTER.isDown()){Thread.sleep(1);} //wait for button release
+				}else if ( Button.ESCAPE.isDown() ){
+					currentStatus = CurrentStatus.EXIT;
+					while(Button.ESCAPE.isDown()){Thread.sleep(1);} //wait for button release
+				}else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT){
+					currentStatus = CurrentStatus.EXIT;
+				}
+				
+				//Leave action
+				if ( currentStatus != CurrentStatus.PARKING ){
+					//nothing to do here
+				}
+				break;
 				case DRIVING:
 					// MONITOR (example)
 //					monitor.writeGuidanceComment("Guidance_Driving");
@@ -199,7 +250,7 @@ public class GuidanceAT {
 		}
 	}
 	
-	
+
 	/**
 	 * returns the actual state of the main finite state machine as defined by the requirements
 	 * 
