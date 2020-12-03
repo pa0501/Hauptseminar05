@@ -93,16 +93,22 @@ public class GuidanceAT {
 	static Line[] map = {line0, line1, line2, line3, line4, line5, line6, line7};
 	
 	
-	
-
-	public double Pfadgenerator(Point P0, Point P1, Point P2, Point P3 ){
-		double x = P0.getx();
-		double y = P0.gety();
+	protected lejos.geom.Point[] Points = new lejos.geom.Point[10];
+	/**
+	 * Create a curve from start to end point using Bézier-Polynom.
+	 * @param P0 Start Point
+	 * @param P3 End Point
+	 * @param P1,P2 predefined Control Points help flatten or sharpen the curve
+	 * 
+	 * 
+	 */
+	public void Pfadgenerator(lejos.geom.Point P0, lejos.geom.Point P1, lejos.geom.Point P2, lejos.geom.Point P3 ){
 		double t = 0;
-		double dt = 0.1;
+		double dt = 0.1;  // Step time, lower mean more precise movement at the cost of longer computation time
 		
 		
-		return x;
+		
+		
 	}
 	
 	//
