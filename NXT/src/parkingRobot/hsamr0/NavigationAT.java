@@ -1,5 +1,7 @@
 package parkingRobot.hsamr0;
 
+import java.util.ArrayList;
+
 import lejos.geom.Line;
 import lejos.robotics.navigation.Pose;
 
@@ -96,15 +98,18 @@ public class NavigationAT implements INavigation{
 	/**
 	 * robot specific constant: distance between wheels
 	 */
-	static final double WHEEL_DISTANCE		= 	0.12; // only rough guess, to be measured exactly and maybe refined by experiments
+	static final double WHEEL_DISTANCE		= 	0.112; // only rough guess, to be measured exactly and maybe refined by experiments
 
 	// CPI for Mouse Sensor
-	private static final double MOUSE_CPI = 0;
-	private static final double MOUSE_FULL_TURN = 0;
+	private static final double MOUSE_CPI = 400;
+	private static final double MOUSE_FULL_TURN = 12;
 
 	// control sensor fusion
-	private static final double G_POS = 0.5;
-	private static final double G_HEADING = 0.5;
+	private static final double G_POS = 0;   // weight 
+	private static final double G_HEADING = 0;
+	
+	private static final double DISTANCCE_FROM_WALL = 15;   // only rough guess, Because there is no vlaus from Distance Sensor
+	private static final int TURN_ON_THE_CORNER = 35;
 
 	
 	/**
@@ -122,7 +127,7 @@ public class NavigationAT implements INavigation{
 	/**
 	 * indicates if parking slot detection should be switched on (true) or off (false)
 	 */
-	boolean parkingSlotDetectionIsOn		= false;
+	boolean parkingSlotDetectionIsOn		= true;
 	/**
 	 * pose class containing bundled current X and Y location and corresponding heading angle phi
 	 */
@@ -135,7 +140,7 @@ public class NavigationAT implements INavigation{
 	
 	
 	// Saving Parkingslot in The array 
-	ParkingSlot[] parkingslots = new ParkingSlot[4];
+	ArrayList<ParkingSlot> parkingslots = new ArrayList<>();
 
 	
 	/**
@@ -150,7 +155,13 @@ public class NavigationAT implements INavigation{
 		this.monitor = monitor;
 		this.encoderLeft  = perception.getNavigationLeftEncoder();
 		this.encoderRight = perception.getNavigationRightEncoder();
-		this.mouseodo = perception.getNavigationOdo();		
+		this.mouseodo = perception.getNavigationOdo();	
+		
+		
+		//monitor.addNavigationVar("X");
+		//monitor.addNavigationVar("Y");
+		//monitor.addNavigationVar("W");
+		
 		
 		navThread.setPriority(Thread.MAX_PRIORITY - 1);
 		navThread.setDaemon(true); // background thread that is not need to terminate in order for the user program to terminate
@@ -186,13 +197,15 @@ public class NavigationAT implements INavigation{
 				this.detectParkingSlot();
 		
 		// MONITOR (example)
-//		monitor.writeNavigationComment("Navigation");
+		monitor.writeNavigationComment("Navigation");
+		   
+			
 	}
 	
 	
 	// Outputs
 	
-	/* (non-Javadoc)
+	/* (non-Javadoc)n
 	 * @see parkingRobot.INavigation#getPose()
 	 */
 	public synchronized Pose getPose(){
@@ -202,7 +215,7 @@ public class NavigationAT implements INavigation{
 	 * @see parkingRobot.INavigation#getParkingSlots()
 	 */
 	public synchronized ParkingSlot[] getParkingSlots() {
-		return parkingslots;
+		return (ParkingSlot[]) parkingslots.toArray();
 	}
 	
 	
@@ -255,10 +268,15 @@ public class NavigationAT implements INavigation{
 			xResult			= this.pose.getX();
 			yResult			= this.pose.getY();
 			angleResult 	= this.pose.getHeading();
+			
+			//monitor.writeNavigationComment("robot don't move");
+			
 		} else if (R.isInfinite()) { //robot moves straight forward/backward, vLeft==vRight
 			xResult			= this.pose.getX() + vLeft * Math.cos(this.pose.getHeading()) * deltaT;
 			yResult			= this.pose.getY() + vLeft * Math.sin(this.pose.getHeading()) * deltaT;
 			angleResult 	= this.pose.getHeading();
+			
+			//monitor.writeNavigationComment("forward/backward");
 		} else {			
 			ICCx = this.pose.getX() - R.doubleValue() * Math.sin(this.pose.getHeading());
 			ICCy = this.pose.getY() + R.doubleValue() * Math.cos(this.pose.getHeading());
@@ -266,6 +284,8 @@ public class NavigationAT implements INavigation{
 			xResult 		= Math.cos(w * deltaT) * (this.pose.getX()-ICCx) - Math.sin(w * deltaT) * (this.pose.getY() - ICCy) + ICCx;
 			yResult 		= Math.sin(w * deltaT) * (this.pose.getX()-ICCx) + Math.cos(w * deltaT) * (this.pose.getY() - ICCy) + ICCy;
 			angleResult 	= this.pose.getHeading() + w * deltaT;
+			
+			//monitor.writeNavigationComment("Heading");
 		}
 		
 		// mouse sensor
@@ -299,36 +319,77 @@ public class NavigationAT implements INavigation{
 		angleResult = (1.0 - G_HEADING) * angleResult + G_HEADING * heading_mou;
 		//
 		
+		// Robot is parallel to wall
+		/*if (this.frontSensorDistance == 0 && this.frontSideSensorDistance > 0) {
+			
+			this.pose.setHeading(180);
+		}
+		
+		//At the corner
+		if (this.frontSensorDistance > 0 && this.frontSideSensorDistance > 0) {
+			this.pose.setHeading(90);
+			
+		}*/
+		
+		
 		this.pose.setLocation((float)xResult, (float)yResult);
-		this.pose.setHeading((float)angleResult);		 
+		this.pose.setHeading((float)angleResult);		
+		
+		//monitor.writeNavigationComment("X =" + this.pose.getX());
+		//monitor.writeNavigationComment("Y =" + this.pose.getY());
+		//monitor.writeNavigationComment("W =" + this.pose.getHeading());
 	}
 	  
+	 public void reset(){
+		 
+		 this.pose.setLocation(0,0);          
+		 this.pose.setHeading(0);    
+	     
+	    }
 	/**
 	 * detects parking slots and manage them by initializing new slots, re-characterizing old slots or merge old and detected slots. 
 	 */
 	  int ID = 1;
 	  int i = 0;
+	  int j=0;
 
 	private void detectParkingSlot(){
-		ParkingSlot parkingslot;    
-		if (this.frontSideSensorDistance > 5) {
-			parkingslot = parkingslots[i];
-			 if (parkingslot != null) {
-				 return;
-			 }
-			parkingslot = new ParkingSlot(ID);  // Great an object 
+
+		if (this.lineSensorRight  < TURN_ON_THE_CORNER|| this.lineSensorLeft < TURN_ON_THE_CORNER) {
+			j++;
+			if(j == 8) {
+				parkingSlotDetectionIsOn= false;
+				return;
+			}
+		
+		}
+		
+		ParkingSlot parkingslot = null;    
+		if (this.frontSideSensorDistance > DISTANCCE_FROM_WALL) {
 			
+			// Check if the Array Empty to avoid IndexOutOfBoundsException 
+			if(!parkingslots.isEmpty()) {
+				parkingslot = parkingslots.get(i);
+			}
+			
+			if (parkingslot != null) {
+				 return;
+			}
+			parkingslot = new ParkingSlot(ID);  // Create an object 
+			
+			//monitor.writeNavigationComment("Parkingslot =");
 	
-			parkingslots[i] = parkingslot ;
-			parkingslot.setBackBoundaryPosition(this.pose.getLocation());
+			parkingslots.add(parkingslot);   // add an element
+			
+			parkingslot.setBackBoundaryPosition(this.pose.getLocation());    // save the first Point 
 					
 		}
 		else {
-			 parkingslot = parkingslots[i];
+			 parkingslot = parkingslots.get(i);
 			 if (parkingslot == null) {
 				 return;
 			 }
-			parkingslot.setFrontBoundaryPosition(this.pose.getLocation());
+			parkingslot.setFrontBoundaryPosition(this.pose.getLocation());  // save the second Point 
 			
 			// Calculate the size of The Parking slot.
 			double ParkSlotDistanc = parkingslot.getBackBoundaryPosition().distance(parkingslot.getFrontBoundaryPosition());
@@ -336,24 +397,31 @@ public class NavigationAT implements INavigation{
 			// Check if The Parking slot fit the Required condition >= 45 cm
 			if(ParkSlotDistanc >= 45) {
 			
-			parkingslot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING);}
+			parkingslot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING);
+			
+			//monitor.writeNavigationComment("X =" + parkingslot.getStatus());
+			//monitor.writeNavigationComment("SUITABLE_FOR_PARKING");
+			
+			}
 			
 			else {
 				
 				parkingslot.setStatus(ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING);
+				
+				//monitor.writeNavigationComment("X =" + parkingslot.getStatus());
+				//monitor.writeNavigationComment("NOT_SUITABLE_FOR_PARKING");
 			}
 
-			 // Incresing ID & i so every Parking slot have a particular ID 
+			 // Increasing ID & i so every Parking slot have a particular ID 
 			
-			   if (ID <= 4 && i <= 3){
 				ID ++;
-				i ++;
-	
-			   }
-				
+				i ++;   
+			
 		}
-		 // has to be implemented by students
+		   // has to be implemented by students
 		
 	}
 	    
 }
+
+
