@@ -140,7 +140,7 @@ public class NavigationAT implements INavigation{
 	
 	
 	// Saving Parkingslot in The array 
-	ArrayList<ParkingSlot> parkingslots = new ArrayList<>();
+	ArrayList<ParkingSlot> parkingslots = new ArrayList<ParkingSlot>();
 
 	
 	/**
