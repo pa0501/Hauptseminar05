@@ -1,6 +1,7 @@
 package parkingRobot.hsamr0;
 
 import lejos.geom.Line;
+import lejos.nxt.LCD;
 import lejos.robotics.navigation.Pose;
 
 import parkingRobot.INavigation;
@@ -96,15 +97,15 @@ public class NavigationAT implements INavigation{
 	/**
 	 * robot specific constant: distance between wheels
 	 */
-	static final double WHEEL_DISTANCE		= 	0.12; // only rough guess, to be measured exactly and maybe refined by experiments
+	static final double WHEEL_DISTANCE		= 	0.112; // only rough guess, to be measured exactly and maybe refined by experiments
 
 	// CPI for Mouse Sensor
-	private static final double MOUSE_CPI = 0;
-	private static final double MOUSE_FULL_TURN = 0;
+	private static final double MOUSE_CPI = 400;
+	private static final double MOUSE_FULL_TURN = 12;
 
 	// control sensor fusion
-	private static final double G_POS = 0.5;
-	private static final double G_HEADING = 0.5;
+	private static final double G_POS = 0.95;
+	private static final double G_HEADING = 0.95;
 
 	
 	/**
@@ -122,7 +123,7 @@ public class NavigationAT implements INavigation{
 	/**
 	 * indicates if parking slot detection should be switched on (true) or off (false)
 	 */
-	boolean parkingSlotDetectionIsOn		= false;
+	boolean parkingSlotDetectionIsOn		= true;
 	/**
 	 * pose class containing bundled current X and Y location and corresponding heading angle phi
 	 */
@@ -255,10 +256,14 @@ public class NavigationAT implements INavigation{
 			xResult			= this.pose.getX();
 			yResult			= this.pose.getY();
 			angleResult 	= this.pose.getHeading();
+			
+			//monitor.writeNavigationComment("robot don't move");
 		} else if (R.isInfinite()) { //robot moves straight forward/backward, vLeft==vRight
 			xResult			= this.pose.getX() + vLeft * Math.cos(this.pose.getHeading()) * deltaT;
 			yResult			= this.pose.getY() + vLeft * Math.sin(this.pose.getHeading()) * deltaT;
 			angleResult 	= this.pose.getHeading();
+			
+			//monitor.writeNavigationComment("forward/backward");
 		} else {			
 			ICCx = this.pose.getX() - R.doubleValue() * Math.sin(this.pose.getHeading());
 			ICCy = this.pose.getY() + R.doubleValue() * Math.cos(this.pose.getHeading());
@@ -266,6 +271,8 @@ public class NavigationAT implements INavigation{
 			xResult 		= Math.cos(w * deltaT) * (this.pose.getX()-ICCx) - Math.sin(w * deltaT) * (this.pose.getY() - ICCy) + ICCx;
 			yResult 		= Math.sin(w * deltaT) * (this.pose.getX()-ICCx) + Math.cos(w * deltaT) * (this.pose.getY() - ICCy) + ICCy;
 			angleResult 	= this.pose.getHeading() + w * deltaT;
+			
+			//monitor.writeNavigationComment("Heading");
 		}
 		
 		// mouse sensor
@@ -300,7 +307,12 @@ public class NavigationAT implements INavigation{
 		//
 		
 		this.pose.setLocation((float)xResult, (float)yResult);
-		this.pose.setHeading((float)angleResult);		 
+		this.pose.setHeading((float)angleResult);	
+		
+		//monitor.writeNavigationComment("X =" + this.pose.getX());
+		//monitor.writeNavigationComment("Y =" + this.pose.getY());
+		//monitor.writeNavigationComment("L =" + this.pose.getLocation());
+		//monitor.writeNavigationComment("W =" + this.pose.getHeading());
 	}
 	  
 	/**
@@ -310,6 +322,8 @@ public class NavigationAT implements INavigation{
 	  int i = 0;
 
 	private void detectParkingSlot(){
+		monitor.writeNavigationComment("X =" + frontSideSensorDistance);
+		
 		ParkingSlot parkingslot;    
 		if (this.frontSideSensorDistance > 5) {
 			parkingslot = parkingslots[i];
@@ -317,10 +331,12 @@ public class NavigationAT implements INavigation{
 				 return;
 			 }
 			parkingslot = new ParkingSlot(ID);  // Great an object 
-			
+			//monitor.writeNavigationComment(" frontSideSensorDistance");
 	
 			parkingslots[i] = parkingslot ;
 			parkingslot.setBackBoundaryPosition(this.pose.getLocation());
+			
+			LCD.drawString("Hello WOrld", 0, 3);
 					
 		}
 		else {

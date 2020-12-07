@@ -3,6 +3,7 @@ package parkingRobot.hsamr0;
 import lejos.nxt.Button;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTMotor;
+import lejos.nxt.Sound;
 import parkingRobot.IControl;
 import parkingRobot.IControl.*;
 import parkingRobot.INxtHmi;
@@ -119,6 +120,7 @@ public class Test_VWControl {
 		long ms_lastAction = System.currentTimeMillis();
 		
 		control.setVelocity(0.1);
+		Sound.beep();
 		
 		while (true) {
 			if (System.currentTimeMillis() - ms_lastAction > 12000) {
@@ -126,10 +128,14 @@ public class Test_VWControl {
 			}
 		}
 		
+		Sound.beep();
+		
 		ms_lastAction = System.currentTimeMillis();
 		
 		control.setVelocity(0);
 		control.setAngularVelocity(15);
+		
+		Sound.beep();
 		
 		while (true) {
 			if (System.currentTimeMillis() - ms_lastAction > 6000) {
@@ -142,6 +148,8 @@ public class Test_VWControl {
 		control.setVelocity(0.05);
 		control.setAngularVelocity(0);
 		
+		Sound.beep();
+		
 		while (true) {
 			if (System.currentTimeMillis() - ms_lastAction > 6000) {
 				break;
@@ -153,6 +161,8 @@ public class Test_VWControl {
 		control.setVelocity(0.0);
 		control.setAngularVelocity(-30);
 		
+		Sound.beep();
+		
 		while (true) {
 			if (System.currentTimeMillis() - ms_lastAction > 3000) {
 				break;
@@ -161,6 +171,8 @@ public class Test_VWControl {
 		
 		control.setVelocity(0.0);
 		control.setAngularVelocity(0);
+		
+		Sound.beep();
 		
 		//control.setVelocity(70);
 		//control.setAngularVelocity(0);

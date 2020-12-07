@@ -116,9 +116,9 @@ public class GuidanceAT {
 		monitor.startLogging();
 				
 		while(true) {
-			showData(navigation, perception);
+			//showData(navigation, perception);
 			
-        	switch ( currentStatus )
+        	/*switch ( currentStatus )
         	{
 				case DRIVING:
 					// MONITOR (example)
@@ -185,16 +185,20 @@ public class GuidanceAT {
 					break;
 				case EXIT:
 					hmi.disconnect();
-					/** NOTE: RESERVED FOR FUTURE DEVELOPMENT (PLEASE DO NOT CHANGE)
-					// monitor.sendOfflineLog();
-					*/
 					monitor.stopLogging();
 					System.exit(0);
 					break;
 			default:
 				break;
         	}
-        		
+        	*/	
+			
+			control.setCtrlMode(ControlMode.LINE_CTRL);
+			
+			if (Button.ESCAPE.isDown()) {
+				System.exit(0);
+			}
+			
         	Thread.sleep(100);        	
 		}
 	}
@@ -221,7 +225,7 @@ public class GuidanceAT {
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 2);
 		
-//		perception.showSensorData();
+	      perception.showSensorData();
 		
 //    	if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 //			LCD.drawString("HMI Mode SCOUT", 0, 3);

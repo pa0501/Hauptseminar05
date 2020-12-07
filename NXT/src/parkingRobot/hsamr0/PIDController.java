@@ -19,6 +19,9 @@ public class PIDController {
 		data.integral = data.integral + error;
 
 		double result = error * data.param_p + data.integral * data.param_i;
+		
+
+		
 
 		return result;
 	}
