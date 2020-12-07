@@ -124,8 +124,8 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensor();
 
 		// MONITOR (example)
-		monitor.addControlVar("RightSensor");
-		monitor.addControlVar("LeftSensor");
+		//monitor.addControlVar("RightSensor");
+		//monitor.addControlVar("LeftSensor");
 
 		this.ctrlThread = new ControlThread(this);
 
@@ -230,6 +230,8 @@ public class ControlRST implements IControl {
 		}
 
 		update_revs();
+		
+		
 
 	}
 
@@ -272,6 +274,15 @@ public class ControlRST implements IControl {
 		data_left.setpoint = w_motor_left;
 		data_left.processVariable = w_meas_left;
 
+		//LCD.drawString("wl " + w_motor_left, 0, 4);
+		
+		try {
+			Thread.sleep(10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		// Hallo
 
 		//LCD.drawString("wl = " + w_meas_left, 0, 0);
@@ -285,6 +296,9 @@ public class ControlRST implements IControl {
 		// (w_motor_right * 100), 0, 0);
 		// LCD.drawString("WL 0." + (int) (w_meas_left * 100) + " 0." + (int)
 		// (w_motor_left * 100), 0, 1);
+		
+
+
 
 		// Adjust motor power based on calculated data
 		leftMotorPower += PIDController.pi_ctrl(data_left);
@@ -463,11 +477,11 @@ public class ControlRST implements IControl {
 		 * a++;
 		 */
 
-		if (data_sensor_right.error_prev > 70) {
+		if (data_sensor_right.error_prev > 90) {
 			return Direction.RIGHT;
 		}
 
-		if (data_sensor_left.error_prev > 70) {
+		if (data_sensor_left.error_prev > 90) {
 			return Direction.LEFT;
 		}
 
@@ -476,13 +490,25 @@ public class ControlRST implements IControl {
 
 	CTRL_ALGO_STATE LINE_STATE = CTRL_ALGO_STATE.LINE;
 
-	double vel_line = 0.2;
+	double vel_line = 0.1;
 
 	public void exec_LINECTRL_ALGO() {
+		
+		
 		double val_left = perception.getLeftLineSensorValue();
 		double val_right = perception.getRightLineSensorValue();
 
 		setVelocity(vel_line);
+		
+		if (LINECTRL_checkForChange(val_right, val_left) != Direction.NONE) {
+			kp_f = 0.1;
+			kp_d = 15;
+		} else {
+			kp_f = 2;
+			kp_d = 0;
+		}
+		
+		
 
 		switch (LINE_STATE) {
 		case LINE:
@@ -491,7 +517,7 @@ public class ControlRST implements IControl {
 
 			Direction cornerat = LINECTRL_checkForChange(val_right, val_left);
 
-			if (cornerat != Direction.NONE) {
+			/*if (cornerat != Direction.NONE) {
 				if (cornerat == Direction.RIGHT) {
 					w_off_l = 0.6;
 				} else if (cornerat == Direction.LEFT) {
@@ -508,7 +534,9 @@ public class ControlRST implements IControl {
 
 				// drive(0, 0);
 
-			}
+			}*/
+			
+			
 
 			break;
 
@@ -526,9 +554,20 @@ public class ControlRST implements IControl {
 	// PIDData data_sensor_right = PIDData.pid(95, 0, 0.6, 0.000, 10);
 	// PIDData data_sensor_left = PIDData.pid(95, 0, 0.6, 0.000, 10);
 
-	PIDData data_sensor_right = PIDData.pid(95, 0, 1, 0.000, 15);
-	PIDData data_sensor_left = PIDData.pid(95, 0, 1, 0.000, 15);
+	//PIDData data_sensor_right = PIDData.pid(95, 0, 1, 0.000, 15);
+	//PIDData data_sensor_left = PIDData.pid(95, 0, 1, 0.000, 15);
 	
+	double kp_f = 2;
+	double kp_d = 15;
+	
+	//PIDData data_sensor_right = PIDData.pid(95, 0, 2, 0.000, 15);
+	//PIDData data_sensor_left = PIDData.pid(95, 0, 2, 0.000, 15);
+	
+	//PIDData data_sensor_right = PIDData.pid(95, 0, kp_f, 0.000, kp_d);
+	//PIDData data_sensor_left = PIDData.pid(95, 0, kp_f, 0.000, kp_d);
+	
+	PIDData data_sensor_right = PIDData.pid(95, 0, 1.5, 0.000, 30);
+	PIDData data_sensor_left = PIDData.pid(95, 0, 1.5, 0.000, 30);
 
 	public void exec_LINECTRL_ALGO_line() {
 		leftMotor.forward();
@@ -540,8 +579,11 @@ public class ControlRST implements IControl {
 		// LINECTRL_checkForChange(val_right, val_left);
 
 		// MONITOR (example)
-		monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-		monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
+		//monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
+		//monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
+
+		LCD.drawString(perception.getRightLineSensorValue() + "  ", 0, 0);
+		LCD.drawString(perception.getLeftLineSensorValue() + "  ", 0, 1);
 
 		data_sensor_right.processVariable = perception.getRightLineSensorValue();
 		data_sensor_left.processVariable = perception.getLeftLineSensorValue();
@@ -553,6 +595,7 @@ public class ControlRST implements IControl {
 
 		vel_ang += delta_pos;
 		vel_ang -= delta_neg;
+		
 
 		if (delta_pos > 0) {
 			LCD.drawString("->", 5, 5);
@@ -604,65 +647,6 @@ public class ControlRST implements IControl {
 
 	private void exec_LINECTRL_ALGO_corner_new() {
 
-		leftMotor.forward();
-		rightMotor.forward();
-		int lowPower = 1;
-		int highPower = 30;
-
-		//double w_high = 0.2;
-		//double w_low = -0.1;
-		/*
-		double w_high = 0.1;
-		double w_low = -0.05;*/
-		
-
-		double w_high = 0.1;
-		double w_low = -0.1;
-
-		if (System.currentTimeMillis() - ms_corner_start < 400) {
-			// w_motor_left = w_off_l;
-			// w_motor_right = w_off_r;
-
-			//w_high = 0.5;
-			w_high = 0.5;
-			w_low = -0.1;
-
-		}
-
-		w_off_l = 0;
-		w_off_r = 0;
-
-		// MONITOR (example)
-		monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-		monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
-
-		vel_line = this.velocity;
-
-		setVelocity(0.1);
-		setAngularVelocity(0);
-		this.drive(this.velocity, this.angularVelocity);
-
-		double vel_ang = 0.6;
-
-		if (this.lineSensorLeft >= 1 && this.lineSensorRight == 0) {
-			w_motor_left = w_low;
-			w_motor_right = w_high;
-
-			ms_lastChange = System.currentTimeMillis();
-		} else if (this.lineSensorLeft == 0 && this.lineSensorRight >= 1) {
-			w_motor_left = w_high;
-			w_motor_right = w_low;
-
-			ms_lastChange = System.currentTimeMillis();
-		}
-
-		if (System.currentTimeMillis() - ms_lastChange > 1000) {
-			LINE_STATE = CTRL_ALGO_STATE.LINE;
-			this.angularVelocity = 0;
-			this.velocity = 0;
-
-			return;
-		}
 	}
 	
 	int step = 0;
@@ -712,8 +696,8 @@ public class ControlRST implements IControl {
 		w_off_r = 0;
 
 		// MONITOR (example)
-		monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-		monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
+		//monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
+		//monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
 
 		vel_line = this.velocity;
 		
@@ -788,6 +772,8 @@ public class ControlRST implements IControl {
 	 */
 
 	private void drive(double v, double w) {
+
+		
 		double w_radPms = w * Math.PI / 180;
 		double v_mmPs = v * 1000;
 
@@ -802,6 +788,9 @@ public class ControlRST implements IControl {
 
 		leftMotor.forward();
 		rightMotor.forward();
+		
+
+		
 
 	}
 
