@@ -11,6 +11,7 @@ import parkingRobot.IPerception;
 import parkingRobot.IMonitor;
 
 import lejos.geom.Line;
+import lejos.geom.Point;
 import lejos.nxt.LCD;
 
 import parkingRobot.hsamr0.ControlRST;
@@ -50,7 +51,11 @@ public class GuidanceAT {
 		/**
 		 * indicates that robot is performing an parking maneuver
 		 */
-		PARKING,
+		EINPARK,
+		/**
+		 * indicates that robot is leaving park slot
+		 */
+		AUSPARK,
 		/**
 		 * indicates that robot is inactive due to Pause-button is pressed
 		 */
@@ -93,18 +98,19 @@ public class GuidanceAT {
 	static Line[] map = {line0, line1, line2, line3, line4, line5, line6, line7};
 	
 	
-	protected lejos.geom.Point[] Points = new lejos.geom.Point[10];
+	
 	/**
 	 * Create a curve from start to end point using Bézier-Polynom.
 	 * @param P0 Start Point
 	 * @param P3 End Point
 	 * @param P1,P2 predefined Control Points help flatten or sharpen the curve
-	 * 
-	 * 
+	 * Said curve will be divided evenly into points, whose amount is decided by step time.
+	 * an Array of those Points and respectively curve's derivatives will be given to Control
 	 */
-	public void Pfadgenerator(lejos.geom.Point P0, lejos.geom.Point P1, lejos.geom.Point P2, lejos.geom.Point P3 ){
+	private void Pfadgenerator(Point P0, Point P1, Point P2, Point P3 ){
+		Point[] Points = new Point[10];
 		double t = 0;
-		double dt = 0.1;  // Step time, lower mean more precise movement at the cost of longer computation time
+		double dt = 0.1;  // Step time, lower this value mean more precise movement at the cost of longer computation time
 		
 		
 		
@@ -144,38 +150,42 @@ public class GuidanceAT {
 			
         	switch ( currentStatus )
         	{	
-        	case PARKING:
-				// MONITOR (example)
-//				monitor.writeGuidanceComment("Guidance_Driving");
-				
-				//Into action
-				if ( lastStatus != CurrentStatus.PARKING ){
-					control.setCtrlMode(ControlMode.PARK_CTRL);
-				}
-				
-				//While action				
-				{
-					//nothing to do here
-				}					
-				
-				//State transition check
-				lastStatus = currentStatus;
-				if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
-					currentStatus = CurrentStatus.INACTIVE;
-				}else if ( Button.ENTER.isDown() ){
-					currentStatus = CurrentStatus.INACTIVE;
-					while(Button.ENTER.isDown()){Thread.sleep(1);} //wait for button release
-				}else if ( Button.ESCAPE.isDown() ){
-					currentStatus = CurrentStatus.EXIT;
-					while(Button.ESCAPE.isDown()){Thread.sleep(1);} //wait for button release
-				}else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT){
-					currentStatus = CurrentStatus.EXIT;
-				}
-				
-				//Leave action
-				if ( currentStatus != CurrentStatus.PARKING ){
-					//nothing to do here
-				}
+        		case EINPARK:
+	        		// Still in alpha
+					// MONITOR (example)
+	//				monitor.writeGuidanceComment("Guidance_Driving");
+					
+					//Into action
+					if ( lastStatus != CurrentStatus.EINPARK ){
+						Point P0 = navigation.getPose().getLocation();
+						hmi.getSelectedParkingSlot();
+						//Pfadgenerator();
+						control.setCtrlMode(ControlMode.PARK_CTRL);
+					}
+					
+					//While action				
+					{
+						//nothing to do here
+					}					
+					
+					//State transition check
+					lastStatus = currentStatus;
+					if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.PAUSE ){
+						currentStatus = CurrentStatus.INACTIVE;
+					}else if ( Button.ENTER.isDown() ){
+						currentStatus = CurrentStatus.INACTIVE;
+						while(Button.ENTER.isDown()){Thread.sleep(1);} //wait for button release
+					}else if ( Button.ESCAPE.isDown() ){
+						currentStatus = CurrentStatus.EXIT;
+						while(Button.ESCAPE.isDown()){Thread.sleep(1);} //wait for button release
+					}else if (hmi.getMode() == parkingRobot.INxtHmi.Mode.DISCONNECT){
+						currentStatus = CurrentStatus.EXIT;
+					}
+					
+					//Leave action
+					if ( currentStatus != CurrentStatus.EINPARK ){
+						//nothing to do here
+					}
 				break;
 				case DRIVING:
 					// MONITOR (example)
@@ -183,6 +193,7 @@ public class GuidanceAT {
 					
 					//Into action
 					if ( lastStatus != CurrentStatus.DRIVING ){
+						navigation.setDetectionState(true);
 						control.setCtrlMode(ControlMode.LINE_CTRL);
 					}
 					
@@ -207,7 +218,8 @@ public class GuidanceAT {
 					
 					//Leave action
 					if ( currentStatus != CurrentStatus.DRIVING ){
-						//nothing to do here
+						navigation.setDetectionState(false);
+						control.setCtrlMode(ControlMode.INACTIVE);
 					}
 					break;				
 				case INACTIVE:
