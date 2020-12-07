@@ -386,6 +386,14 @@ public class NavigationAT implements INavigation{
 		}
 		else {
 			 parkingslot = parkingslots.get(i);
+
+			 // Check if The i >= the Array size to avoid an Error
+			
+			 if (i >= parkingslots.size()){
+	              return;
+			 }
+
+			 
 			 if (parkingslot == null) {
 				 return;
 			 }
