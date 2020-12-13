@@ -20,10 +20,6 @@ import parkingRobot.INavigation;
  */
 public class ControlRST implements IControl {
 
-	enum Direction {
-		RIGHT, LEFT, NONE
-	}
-
 	enum CTRL_ALGO_STATE {
 		LINE, CORNER
 	}
@@ -250,7 +246,6 @@ public class ControlRST implements IControl {
 
 	private void update_VWCTRL_Parameter() {
 		setPose(navigation.getPose());
-
 	}
 
 	PIDData data_right = PIDData.pi(0, 0, 60, 1.05);
@@ -316,77 +311,6 @@ public class ControlRST implements IControl {
 	int selection = 0; // 0 - none; 1 - velocity; 2 - angular;
 	int cursor = 1; // 0 - none; 1 - velocity; 2 - angular;
 
-	// GUI - Nicht in der Aufgabe gefordert!
-
-	public void menu_update() {
-		if (Button.ENTER.isDown()) {
-			if (btn_enter_prev == 1) {
-				btn_enter_prev = 0;
-				return;
-			} else {
-				btn_enter_prev = 1;
-			}
-		}
-
-		if (Button.LEFT.isDown()) {
-			if (btn_left_prev == 1) {
-				btn_left_prev = 0;
-				return;
-			} else {
-				btn_left_prev = 1;
-			}
-		}
-
-		if (Button.RIGHT.isDown()) {
-			if (btn_right_prev == 1) {
-				btn_right_prev = 0;
-				return;
-			} else {
-				btn_right_prev = 1;
-			}
-		}
-
-		if (Button.ENTER.isDown()) {
-			if (cursor == 0) {
-				cursor = selection;
-				selection = 0;
-			} else {
-				selection = cursor;
-				cursor = 0;
-			}
-		} else if (Button.RIGHT.isDown()) {
-			if (cursor == 1) {
-				cursor = 2;
-			} else if (cursor == 2) {
-				cursor = 1;
-			}
-
-			if (selection == 1) {
-				velocity += 5;
-			} else if (selection == 2) {
-				angularVelocity += 0.1;
-			}
-		} else if (Button.LEFT.isDown()) {
-			if (cursor == 1) {
-				cursor = 2;
-			} else if (cursor == 2) {
-				cursor = 1;
-			}
-
-			if (selection == 1) {
-				velocity -= 5;
-			} else if (selection == 2) {
-				angularVelocity -= 0.1;
-			}
-		}
-
-		if (cursor == 1) {
-			LCD.drawString("> ", 0, 5);
-		} else if (cursor == 2) {
-			LCD.drawString("> ", 0, 6);
-		}
-	}
-
 	/**
 	 * update parameters during SETPOSE Control Mode
 	 */
@@ -444,194 +368,41 @@ public class ControlRST implements IControl {
 
 	int a = 0;
 
-	private Direction LINECTRL_checkForChange(double val_right, double val_left) {
-
-		/*
-		 * if (a % 1 == 0) { avg_sensor_right.addValue(val_right);
-		 * avg_sensor_left.addValue(val_left);
-		 * 
-		 * avg_sensor_right.addValue(val_right); avg_sensor_left.addValue(val_left);
-		 * 
-		 * double avg_r_2 = avg_sensor_right.getAverageOfLastN(1); double avg_r_15 =
-		 * avg_sensor_right.getAverageInRange(0, 5);
-		 * 
-		 * double avg_l_2 = avg_sensor_left.getAverageOfLastN(1); double avg_l_15 =
-		 * avg_sensor_left.getAverageInRange(0, 5);
-		 * 
-		 * LCD.drawString("r(2):  " + avg_r_2, 0, 0); LCD.drawString("r(10): " +
-		 * avg_r_15, 0, 1);
-		 * 
-		 * LCD.drawString("l(2):  " + avg_l_2, 0, 3); LCD.drawString("l(10): " +
-		 * avg_l_15, 0, 4);
-		 * 
-		 * // 50 oder 60 if (avg_l_15 - avg_l_2 > 50) { //Sound.buzz();
-		 * 
-		 * return Direction.LEFT; }
-		 * 
-		 * if (Math.abs(avg_r_15 - avg_r_2) > 50) { //Sound.beep();
-		 * 
-		 * return Direction.RIGHT; }
-		 * 
-		 * }
-		 * 
-		 * a++;
-		 */
-
-		if (data_sensor_right.error_prev > 90) {
-			return Direction.RIGHT;
-		}
-
-		if (data_sensor_left.error_prev > 90) {
-			return Direction.LEFT;
-		}
-
-		return Direction.NONE;
-	}
-
 	CTRL_ALGO_STATE LINE_STATE = CTRL_ALGO_STATE.LINE;
 
 	double vel_line = 0.1;
 
 	public void exec_LINECTRL_ALGO() {
-		
-		
-		double val_left = perception.getLeftLineSensorValue();
-		double val_right = perception.getRightLineSensorValue();
-
 		setVelocity(vel_line);
-		
-		if (LINECTRL_checkForChange(val_right, val_left) != Direction.NONE) {
-			kp_f = 0.1;
-			kp_d = 15;
-		} else {
-			kp_f = 2;
-			kp_d = 0;
-		}
-		
-		
 
-		switch (LINE_STATE) {
-		case LINE:
-
-			exec_LINECTRL_ALGO_line();
-
-			Direction cornerat = LINECTRL_checkForChange(val_right, val_left);
-
-			/*if (cornerat != Direction.NONE) {
-				if (cornerat == Direction.RIGHT) {
-					w_off_l = 0.6;
-				} else if (cornerat == Direction.LEFT) {
-					w_off_r = 0.6;
-				}
-
-				ms_corner_start = System.currentTimeMillis();
-
-				LINE_STATE = CTRL_ALGO_STATE.CORNER;
-				
-				step = 0;
-
-				vel_line = this.velocity;
-
-				// drive(0, 0);
-
-			}*/
-			
-			
-
-			break;
-
-		case CORNER:
-
-			exec_LINECTRL_ALGO_corner();
-
-			break;
-
-		default:
-			break;
-		}
+		exec_LINECTRL_ALGO_line();
 	}
-
-	// PIDData data_sensor_right = PIDData.pid(95, 0, 0.6, 0.000, 10);
-	// PIDData data_sensor_left = PIDData.pid(95, 0, 0.6, 0.000, 10);
-
-	//PIDData data_sensor_right = PIDData.pid(95, 0, 1, 0.000, 15);
-	//PIDData data_sensor_left = PIDData.pid(95, 0, 1, 0.000, 15);
 	
 	double kp_f = 2;
 	double kp_d = 15;
 	
-	//PIDData data_sensor_right = PIDData.pid(95, 0, 2, 0.000, 15);
-	//PIDData data_sensor_left = PIDData.pid(95, 0, 2, 0.000, 15);
-	
-	//PIDData data_sensor_right = PIDData.pid(95, 0, kp_f, 0.000, kp_d);
-	//PIDData data_sensor_left = PIDData.pid(95, 0, kp_f, 0.000, kp_d);
-	
 	PIDData data_sensor_right = PIDData.pid(95, 0, 1.5, 0.000, 30);
 	PIDData data_sensor_left = PIDData.pid(95, 0, 1.5, 0.000, 30);
+	
+	PIDData data_sensor = PIDData.pid(0, 0, 0.8, 0.0, 2);
 
 	public void exec_LINECTRL_ALGO_line() {
 		leftMotor.forward();
 		rightMotor.forward();
 
 		double val_left = perception.getLeftLineSensorValue();
-		double val_right = perception.getRightLineSensorValue();
-
-		// LINECTRL_checkForChange(val_right, val_left);
-
-		// MONITOR (example)
-		//monitor.writeControlVar("LeftSensor", "" + this.lineSensorLeft);
-		//monitor.writeControlVar("RightSensor", "" + this.lineSensorRight);
-
-		LCD.drawString(perception.getRightLineSensorValue() + "  ", 0, 0);
-		LCD.drawString(perception.getLeftLineSensorValue() + "  ", 0, 1);
-
-		data_sensor_right.processVariable = perception.getRightLineSensorValue();
-		data_sensor_left.processVariable = perception.getLeftLineSensorValue();
+		double val_right = perception.getRightLineSensorValue() + 5;
 
 		double vel_ang = getAngularVelocity();
 
-		double delta_pos = PIDController.pid_ctrl(data_sensor_right);
-		double delta_neg = PIDController.pid_ctrl(data_sensor_left);
-
-		vel_ang += delta_pos;
-		vel_ang -= delta_neg;
+		data_sensor.processVariable = val_left - val_right;
 		
-
-		if (delta_pos > 0) {
-			LCD.drawString("->", 5, 5);
-		} else if (delta_pos < 0) {
-			LCD.drawString("<-", 5, 5);
-		} else if (delta_pos == 0) {
-			LCD.drawString("  ", 5, 5);
-		}
-
-		if (delta_neg < 0) {
-			LCD.drawString("->", 0, 5);
-		} else if (delta_neg > 0) {
-			LCD.drawString("<-", 0, 5);
-		} else if (delta_neg == 0) {
-			LCD.drawString("  ", 0, 5);
-		}
-
-		if (vel_ang > 0) {
-			LCD.drawString(">", 3, 5);
-		} else if (vel_ang < 0) {
-			LCD.drawString("<", 3, 5);
-		} else if (vel_ang == 0) {
-			LCD.drawString("^", 3, 5);
-		}
-
-		if (val_left > 50 && val_left > 50) {
-
-		}
-
-		LCD.drawString("l: " + val_left, 0, 6);
-		LCD.drawString("r: " + val_right, 0, 7);
-
-		setAngularVelocity(-vel_ang);
-
-		// avg_sensor_left.addValue(val_left);
-		// avg_sensor_right.addValue(val_right);
+		LCD.drawString(val_left + " - "  +val_right, 0, 4);
+		LCD.drawString("e = " + data_sensor.processVariable, 0, 5);
+		
+		vel_ang = PIDController.pid_ctrl(data_sensor);
+		
+		setAngularVelocity(vel_ang);
 	}
 
 	/**
