@@ -141,8 +141,8 @@ public class PerceptionPMP implements IPerception {
 		this.LSrwhite = this.RightLineSensor;
 		this.LSlwhite = this.LeftLineSensor;
 		
-		this.LSrwhite = 57;
-		this.LSlwhite = 57;
+		//this.LSrwhite = 57;
+		//this.LSlwhite = 57;
 		
 		LCD.clear();
 		LCD.drawString("Kalibriere", 0, 0);
@@ -159,8 +159,8 @@ public class PerceptionPMP implements IPerception {
 		this.LSrblack = this.RightLineSensor;
 		this.LSlblack = this.LeftLineSensor;
 		
-		this.LSrblack = 36;
-		this.LSlblack = 36;
+		//this.LSrblack = 36;
+		//this.LSlblack = 36;
 	}
 	
 	public void showSensorData() {
