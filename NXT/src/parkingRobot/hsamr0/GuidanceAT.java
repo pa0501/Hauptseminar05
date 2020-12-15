@@ -13,6 +13,7 @@ import parkingRobot.IMonitor;
 import lejos.geom.Line;
 import lejos.geom.Point;
 import lejos.nxt.LCD;
+import lejos.robotics.navigation.Pose;
 
 import parkingRobot.hsamr0.ControlRST;
 import parkingRobot.hsamr0.HmiPLT;
@@ -111,11 +112,11 @@ public class GuidanceAT {
 		Point[] Points = new Point[10];
 		double t = 0;
 		double dt = 0.1;  // Step time, lower this value mean more precise movement at the cost of longer computation time
-		//nothing
-		
-		
-		
 	}
+	/**
+	 * return true if robot is in line x
+	 */
+	
 	
 	//
 	/**
@@ -144,13 +145,15 @@ public class GuidanceAT {
 		INxtHmi  	hmi        = new HmiPLT(perception, navigation, control, monitor);
 		
 		monitor.startLogging();
-				
+		int lc = 2; // Lap counts
 		while(true) {
 			showData(navigation, perception);
+			boolean isinLine0 = false;
+			boolean isinLine7 = false; 
 			
         	switch ( currentStatus )
         	{	
-        		case EINPARK:
+        		/*case EINPARK:
 	        		// Still in alpha
 					// MONITOR (example)
 	//				monitor.writeGuidanceComment("Guidance_Driving");
@@ -187,19 +190,40 @@ public class GuidanceAT {
 						//nothing to do here
 					}
 				break;
+				*/
 				case DRIVING:
 					// MONITOR (example)
 //					monitor.writeGuidanceComment("Guidance_Driving");
 					
 					//Into action
 					if ( lastStatus != CurrentStatus.DRIVING ){
-						navigation.setDetectionState(true);
 						control.setCtrlMode(ControlMode.LINE_CTRL);
+						navigation.setDetectionState(true);
 					}
 					
-					//While action				
+					//While action
+					//student's note: not yet tested 
 					{
-						//nothing to do here
+						//Lap-countdown:
+						float x = navigation.getPose().getX();
+						float y = navigation.getPose().getY();
+						if((x >= line0.x1) && (x <= line0.x2) && (y <= 10)){
+							isinLine0 = true;
+						}else{
+							isinLine0 = false;
+						}
+						if((y >= line7.y2) && (y <= line7.y1) && (x <= 10)){
+							isinLine7 = true;
+						}else{
+							isinLine7 = false;
+						}
+						if(isinLine0 && isinLine7){
+							lc--;
+						}
+						if(lc <= 0){
+							currentStatus = CurrentStatus.INACTIVE;
+						}
+				
 					}					
 					
 					//State transition check

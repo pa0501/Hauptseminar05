@@ -108,7 +108,7 @@ public class NavigationAT implements INavigation{
 	private static final double G_POS = 0;   // weight 
 	private static final double G_HEADING = 0;
 	
-	private static final double DISTANCCE_FROM_WALL = 15;   // only rough guess, Because there is no vlaus from Distance Sensor
+	private static final double DISTANCCE_FROM_WALL = 280;   // only rough guess, Because there is no vlaus from Distance Sensor
 	private static final int TURN_ON_THE_CORNER = 35;
 
 	
@@ -127,7 +127,7 @@ public class NavigationAT implements INavigation{
 	/**
 	 * indicates if parking slot detection should be switched on (true) or off (false)
 	 */
-	boolean parkingSlotDetectionIsOn		= true;
+	boolean parkingSlotDetectionIsOn		= false;
 	/**
 	 * pose class containing bundled current X and Y location and corresponding heading angle phi
 	 */
@@ -197,7 +197,7 @@ public class NavigationAT implements INavigation{
 				this.detectParkingSlot();
 		
 		// MONITOR (example)
-		monitor.writeNavigationComment("Navigation");
+		//monitor.writeNavigationComment("Navigation");
 		   
 			
 	}
@@ -346,90 +346,83 @@ public class NavigationAT implements INavigation{
 		 this.pose.setHeading(0);    
 	     
 	    }
-	/**
-	 * detects parking slots and manage them by initializing new slots, re-characterizing old slots or merge old and detected slots. 
-	 */
-	  int ID = 1;
-	  int i = 0;
-	  int j=0;
+	 
+	 /**
+		 * detects parking slots and manage them by initializing new slots, re-characterizing old slots or merge old and detected slots. 
+		 */
+		  int ID = 1;
+		  //int i = 0;
+		  int j=0;
+		  ParkingSlot parkingslot = null;
 
-	private void detectParkingSlot(){
+		private void detectParkingSlot(){
 
-		if (this.lineSensorRight  < TURN_ON_THE_CORNER|| this.lineSensorLeft < TURN_ON_THE_CORNER) {
-			j++;
-			if(j == 8) {
-				parkingSlotDetectionIsOn= false;
-				return;
-			}
+			/*if (this.lineSensorRight  < TURN_ON_THE_CORNER|| this.lineSensorLeft < TURN_ON_THE_CORNER) {
+				j++;
+				if(j == 8) { 
+					parkingSlotDetectionIsOn= false;
+					return;
+				}
+			
+			}*/
+			monitor.writeNavigationComment("Parkingslot =" + perception.getFrontSideSensorDistance());
+			    
+			if (perception.getFrontSideSensorDistance() > DISTANCCE_FROM_WALL) {
+				
+				// Check if the Array Empty to avoid IndexOutOfBoundsException 
+				/*if(!parkingslots.isEmpty()) {
+					parkingslot = parkingslots.get(i);
+				}*/
+				
+				if (parkingslot != null) {
+					 return;
+				}
+				parkingslot = new ParkingSlot(ID);  // Create an object 
+				
+				monitor.writeNavigationComment("Parkingslot =");
 		
-		}
-		
-		ParkingSlot parkingslot = null;    
-		if (this.frontSideSensorDistance > DISTANCCE_FROM_WALL) {
-			
-			// Check if the Array Empty to avoid IndexOutOfBoundsException 
-			if(!parkingslots.isEmpty()) {
-				parkingslot = parkingslots.get(i);
+				
+				
+				parkingslot.setBackBoundaryPosition(this.pose.getLocation());    // save the first Point 
+						
 			}
-			
-			if (parkingslot != null) {
-				 return;
-			}
-			parkingslot = new ParkingSlot(ID);  // Create an object 
-			
-			//monitor.writeNavigationComment("Parkingslot =");
-	
-			parkingslots.add(parkingslot);   // add an element
-			
-			parkingslot.setBackBoundaryPosition(this.pose.getLocation());    // save the first Point 
-					
-		}
-		else {
-			 parkingslot = parkingslots.get(i);
-
-			 // Check if The i >= the Array size to avoid an Error
-			
-			 if (i >= parkingslots.size()){
-	              return;
-			 }
-
-			 
-			 if (parkingslot == null) {
-				 return;
-			 }
-			parkingslot.setFrontBoundaryPosition(this.pose.getLocation());  // save the second Point 
-			
-			// Calculate the size of The Parking slot.
-			double ParkSlotDistanc = parkingslot.getBackBoundaryPosition().distance(parkingslot.getFrontBoundaryPosition());
-			
-			// Check if The Parking slot fit the Required condition >= 45 cm
-			if(ParkSlotDistanc >= 45) {
-			
-			parkingslot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING);
-			
-			//monitor.writeNavigationComment("X =" + parkingslot.getStatus());
-			//monitor.writeNavigationComment("SUITABLE_FOR_PARKING");
-			
-			}
-			
 			else {
+				 if (parkingslot == null) {
+					 return;
+				 }
+				parkingslot.setFrontBoundaryPosition(this.pose.getLocation());  // save the second Point 
 				
-				parkingslot.setStatus(ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING);
+				// Calculate the size of The Parking slot.
+				double ParkSlotDistanc = parkingslot.getBackBoundaryPosition().distance(parkingslot.getFrontBoundaryPosition());
 				
-				//monitor.writeNavigationComment("X =" + parkingslot.getStatus());
-				//monitor.writeNavigationComment("NOT_SUITABLE_FOR_PARKING");
-			}
+				// Check if The Parking slot fit the Required condition >= 45 cm
+				if(ParkSlotDistanc >= 450) {
+				
+				parkingslot.setStatus(ParkingSlotStatus.SUITABLE_FOR_PARKING);
+				
+				monitor.writeNavigationComment("X =" + parkingslot.getStatus());
+				monitor.writeNavigationComment("SUITABLE_FOR_PARKING");
+				
+				}
+				
+				else {
+					
+					parkingslot.setStatus(ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING);
+					
+					monitor.writeNavigationComment("X =" + parkingslot.getStatus());
+					monitor.writeNavigationComment("NOT_SUITABLE_FOR_PARKING");
+				}
 
-			 // Increasing ID & i so every Parking slot have a particular ID 
-			
-				ID ++;
-				i ++;   
+				parkingslots.add(parkingslot);   // add an element
+				parkingslot = null;
+				 // Increasing ID & i so every Parking slot have a particular ID 
+				
+				ID++;
+				//i++;   
+				
+			}
+			   // has to be implemented by students
 			
 		}
-		   // has to be implemented by students
-		
-	}
 	    
 }
-
-
