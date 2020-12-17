@@ -116,9 +116,9 @@ public class GuidanceAT {
 		monitor.startLogging();
 				
 		while(true) {
-			//showData(navigation, perception);
+			showData(navigation, perception);
 			
-        	/*switch ( currentStatus )
+        	switch ( currentStatus )
         	{
 				case DRIVING:
 					// MONITOR (example)
@@ -150,7 +150,7 @@ public class GuidanceAT {
 					
 					//Leave action
 					if ( currentStatus != CurrentStatus.DRIVING ){
-						//nothing to do here
+						
 					}
 					break;				
 				case INACTIVE:
@@ -191,9 +191,9 @@ public class GuidanceAT {
 			default:
 				break;
         	}
-        	*/	
+        	
 			
-			control.setCtrlMode(ControlMode.LINE_CTRL);
+			//control.setCtrlMode(ControlMode.LINE_CTRL);
 			
 			if (Button.ESCAPE.isDown()) {
 				System.exit(0);
