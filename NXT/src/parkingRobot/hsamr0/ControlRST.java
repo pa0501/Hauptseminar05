@@ -93,7 +93,7 @@ public class ControlRST implements IControl {
 	double currentDistance = 0.0;
 	double Distance = 0.0;
 
-	double radius_tire_mm = 225;
+	double radius_tire_mm = 280;	// previously 225
 	double distance_tires_mm = 120;
 
 	/**
@@ -174,7 +174,9 @@ public class ControlRST implements IControl {
 		this.destination.setHeading((float) heading);
 		this.destination.setLocation((float) x, (float) y);
 		
-		path_park = ParkingPath.withEnd(0.65/0.1 * x, 3.5 / 0.5 * y);
+		//path_park = ParkingPath.withEnd(0.65/0.1 * x, 3.5 / 0.5 * y);
+		
+		path_park = ParkingPath.withEndAndVelocity(x + 0.03, y + 0.03, velocity);
 	}
 
 	/**
@@ -230,8 +232,12 @@ public class ControlRST implements IControl {
 			exec_INACTIVE();
 			break;
 		}
+		
+		if (currentCTRLMODE != ControlMode.INACTIVE) {
+			update_revs();
+		}
 
-		update_revs();
+		
 
 	}
 
@@ -249,8 +255,8 @@ public class ControlRST implements IControl {
 	// stays constant throughout
 	// multiple method calls.
 
-	PIDData data_right = PIDData.pi(0, 0, 60, 1.05);
-	PIDData data_left = PIDData.pi(0, 0, 60, 1.05);
+	PIDData data_right = PIDData.pi(0, 0, 60, 1.5);
+	PIDData data_left = PIDData.pi(0, 0, 60, 1.5);
 
 	private void update_revs() {
 		setPose(navigation.getPose());
@@ -331,14 +337,14 @@ public class ControlRST implements IControl {
 		if (path_park != null) {
 			
 			setVelocity(path_park.calc_v(t));
-			setAngularVelocity(-path_park.calc_w(t));
+			setAngularVelocity(path_park.calc_w(t));
 			
 			LCD.drawString("w = " + getAngularVelocity(), 0, 0);
 			
 			LCD.drawString("v = " + path_park.calc_v(t), 0, 1);
 			LCD.drawString("x = " + path_park.calc_x(t), 0, 2);
 			
-			if (t > path_park.T) {
+			if (t > path_park.T / path_park.getVelocity()) {
 				 path_park = null;
 				
 				setVelocity(0);
@@ -387,6 +393,8 @@ public class ControlRST implements IControl {
 	private void stop() {
 		this.leftMotor.stop();
 		this.rightMotor.stop();
+		
+		
 	}
 
 	/**
