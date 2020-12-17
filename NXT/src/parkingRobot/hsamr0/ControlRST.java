@@ -165,7 +165,8 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * set destination
+	 * Sets destination for park control. x and y are in m, but there is some math error: Changing x will
+	 * lead to a change in y too.
 	 * 
 	 * @see parkingRobot.IControl#setDestination(double heading, double x, double y)
 	 */
