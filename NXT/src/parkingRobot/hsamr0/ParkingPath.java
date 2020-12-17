@@ -57,19 +57,37 @@ public class ParkingPath {
 		coefsX[index] = value;
 	}
 	
+	/**
+	 * Calculate phi at time t.
+	 * @param t
+	 * @return
+	 */
+	
 	public double calc_phi(double t) {
 		//return Math.atan(calc_x_dot1(t));
 		
 		return Math.atan(calc_x_dot1(t) / v0);
 	}
 	
+	/**
+	 * Calculate omega at time t.
+	 * @param t
+	 * @return
+	 */
+	
 	public double calc_w(double t) {
 		return Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + 1));
 		
-		
+		// Hier muss v0 irgendwie mit eingerechnet werden: Irgendwo ist noch ein Fehler.
 		
 		//return Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + Math.pow(v0, 2)));
 	}
+	
+	/**
+	 * Calculate v at time t.
+	 * @param t
+	 * @return
+	 */
 	
 	public double calc_v(double t) {
 		//return calc_x_dot1(t) * Math.cos(calc_phi(t)) + Math.sin(calc_phi(t));
@@ -87,6 +105,12 @@ public class ParkingPath {
 		return result;
 	}
 	
+	/**
+	 * Calculates first derivative of time at point t.
+	 * @param t
+	 * @return
+	 */
+	
 	public double calc_x_dot1(double t) {
 		double result = 0;
 		
@@ -96,6 +120,12 @@ public class ParkingPath {
 		
 		return result;
 	}
+	
+	/**
+	 * Calculates second derivative of time at point t.
+	 * @param t
+	 * @return
+	 */
 	
 	public double calc_x_dot2(double t) {
 		double result = 0;
