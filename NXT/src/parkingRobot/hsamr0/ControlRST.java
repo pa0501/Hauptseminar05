@@ -1,5 +1,6 @@
 package parkingRobot.hsamr0;
 
+import lejos.robotics.PressureDetector;
 import lejos.robotics.navigation.Pose;
 import parkingRobot.IControl;
 import parkingRobot.IMonitor;
@@ -84,6 +85,8 @@ public class ControlRST implements IControl {
 
 	EncoderSensor controlRightEncoder = null;
 	EncoderSensor controlLeftEncoder = null;
+	
+	ParkingPath path_park = null;
 
 	int lastTime = 0;
 
@@ -169,6 +172,8 @@ public class ControlRST implements IControl {
 	public void setDestination(double heading, double x, double y) {
 		this.destination.setHeading((float) heading);
 		this.destination.setLocation((float) x, (float) y);
+		
+		path_park = ParkingPath.withEnd(0.65/0.1 * x, 3.5 / 0.5 * y);
 	}
 
 	/**
@@ -289,18 +294,18 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * update parameters during PARKING Control Mode
-	 */
-	private void update_PARKCTRL_Parameter() {
-		// Aufgabe 3.4
-	}
-
-	/**
 	 * update parameters during LINE Control Mode
 	 */
 	private void update_LINECTRL_Parameter() {
 		this.lineSensorRight = perception.getRightLineSensor();
 		this.lineSensorLeft = perception.getLeftLineSensor();
+	}
+
+	/**
+	 * update parameters during PARKING Control Mode
+	 */
+	private void update_PARKCTRL_Parameter() {
+		// Aufgabe 3.4
 	}
 
 	/**
@@ -320,7 +325,25 @@ public class ControlRST implements IControl {
 	 * PARKING along the generated path
 	 */
 	private void exec_PARKCTRL_ALGO() {
-		// Aufgabe 3.4
+		double t = (double) (System.currentTimeMillis() - lastTime) / 1000d;
+		
+		if (path_park != null) {
+			
+			setVelocity(path_park.calc_v(t));
+			setAngularVelocity(-path_park.calc_w(t));
+			
+			LCD.drawString("w = " + getAngularVelocity(), 0, 0);
+			
+			LCD.drawString("v = " + path_park.calc_v(t), 0, 1);
+			LCD.drawString("x = " + path_park.calc_x(t), 0, 2);
+			
+			if (t > path_park.T) {
+				 path_park = null;
+				
+				setVelocity(0);
+				setAngularVelocity(0);
+			}
+		}
 	}
 
 	private void exec_INACTIVE() {
