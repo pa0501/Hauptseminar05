@@ -47,7 +47,7 @@ public interface IControl {
 	/**
 	 * set the required speed
 	 * 
-	 * @param velocity the velocity of the robot to be set
+	 * @param velocity [m/s] the velocity of the robot to be set
 	 */	
 	public void setVelocity(double velocity);
 
@@ -55,16 +55,16 @@ public interface IControl {
 	/**
 	 *  set the required angular velocity
 	 *  
-	 * @param angularVelocity  the angular velocity to be set
+	 * @param angularVelocity [deg/s] the angular velocity to be set for vw-control
 	 */
 	public void setAngularVelocity(double angularVelocity);
 
 	/**
-	 * set the destination to be driven to
+	 * Set the destination to be driven to at given velocity for park control.
 	 * 
 	 * @param heading the heading angle of the robot at the destination
-	 * @param x the destination position in x axis
-	 * @param y the destination position in y axis
+	 * @param x [m] the destination position in x axis
+	 * @param y [m] the destination position in y axis
 	 */
 	public void setDestination(double heading, double x, double y);
 		
