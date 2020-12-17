@@ -31,18 +31,24 @@ public class ParkingPath {
 		return this;
 	}
 	
+	public ParkingPath velocity(double v) {
+		v0 = v;
+		
+		return this;
+	}
+	
 	/**
 	 * 
 	 * @param p_end [x and y in m] The path's end point.
 	 * @return A generated path that intersects with the specified end point.
 	 */
 	
-	public static ParkingPath withEnd(double x, double T) {
-		double c3 = 10*x / Math.pow(T, 3);
-		double c4 = -15*x / Math.pow(T, 4);
-		double c5 = 6*x / Math.pow(T, 5);
+	public static ParkingPath withEndAndVelocity(double x, double T, double v) {	
+		double c3 = 10*x / Math.pow(T / v, 3);
+		double c4 = -15*x / Math.pow(T / v, 4);
+		double c5 = 6*x / Math.pow(T / v, 5);
 		
-		return ParkingPath.withCoefficients(new Double[] {c5, c4, c3, 0d, 0d, 0d}).endPoint(x, T);
+		return ParkingPath.withCoefficients(new Double[] {c5, c4, c3, 0d, 0d, 0d}).endPoint(x, T).velocity(v);
 	}
 	
 	public double getEndX() {
@@ -51,6 +57,10 @@ public class ParkingPath {
 	
 	public double getEndT() {
 		return T;
+	}
+	
+	public double getVelocity() {
+		return v0;
 	}
 	
 	public void addCoefficient(int index, double value) {
@@ -66,7 +76,7 @@ public class ParkingPath {
 	public double calc_phi(double t) {
 		//return Math.atan(calc_x_dot1(t));
 		
-		return Math.atan(calc_x_dot1(t) / v0);
+		return Math.atan(v0 / calc_x_dot1(t));
 	}
 	
 	/**
@@ -76,11 +86,10 @@ public class ParkingPath {
 	 */
 	
 	public double calc_w(double t) {
-		return Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + 1));
+		//return -Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + 1));
 		
-		// Hier muss v0 irgendwie mit eingerechnet werden: Irgendwo ist noch ein Fehler.
-		
-		//return Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + Math.pow(v0, 2)));
+		// previously * 0.7 because of small discrepancy due to wrong tire radius 
+		return -Math.toDegrees(calc_x_dot2(t) * v0 / (Math.pow(calc_x_dot1(t), 2) + Math.pow(v0, 2)));
 	}
 	
 	/**
