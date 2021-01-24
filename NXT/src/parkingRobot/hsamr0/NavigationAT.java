@@ -89,15 +89,15 @@ public class NavigationAT implements INavigation{
 	/**
 	 * robot specific constant: radius of left wheel
 	 */
-	static final double LEFT_WHEEL_RADIUS	= 	0.23; // only rough guess, to be measured exactly and maybe refined by experiments
+	static final double LEFT_WHEEL_RADIUS	= 	0.028; // only rough guess, to be measured exactly and maybe refined by experiments
 	/**
 	 * robot specific constant: radius of right wheel
 	 */
-	static final double RIGHT_WHEEL_RADIUS	= 	0.23; // only rough guess, to be measured exactly and maybe refined by experiments
+	static final double RIGHT_WHEEL_RADIUS	= 	0.028; // only rough guess, to be measured exactly and maybe refined by experiments
 	/**
 	 * robot specific constant: distance between wheels
 	 */
-	static final double WHEEL_DISTANCE		= 	0.112; // only rough guess, to be measured exactly and maybe refined by experiments
+	static final double WHEEL_DISTANCE		= 	0.120; // only rough guess, to be measured exactly and maybe refined by experiments
 
 	// CPI for Mouse Sensor
 	private static final double MOUSE_CPI = 400;
@@ -301,9 +301,9 @@ public class NavigationAT implements INavigation{
 		//
 
 		// Fusion
-		xResult = (1.0 - G_POS) * xResult + G_POS * x_mou;
-		yResult = (1.0 - G_POS) * yResult + G_POS * y_mou;
-		angleResult = (1.0 - G_HEADING) * angleResult + G_HEADING * heading_mou;
+		//xResult = (1.0 - G_POS) * xResult + G_POS * x_mou;
+		//yResult = (1.0 - G_POS) * yResult + G_POS * y_mou;
+		//angleResult = (1.0 - G_HEADING) * angleResult + G_HEADING * heading_mou;
 		//
 		
 		this.pose.setLocation((float)xResult, (float)yResult);
@@ -331,6 +331,7 @@ public class NavigationAT implements INavigation{
 				 return;
 			 }
 			parkingslot = new ParkingSlot(ID);  // Great an object 
+			parkingslot.setStatus(ParkingSlotStatus.NOT_SUITABLE_FOR_PARKING);
 			//monitor.writeNavigationComment(" frontSideSensorDistance");
 	
 			parkingslots[i] = parkingslot ;
