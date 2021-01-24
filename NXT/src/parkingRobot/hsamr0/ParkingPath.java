@@ -43,10 +43,10 @@ public class ParkingPath {
 	 * @return A generated path that intersects with the specified end point.
 	 */
 	
-	public static ParkingPath withEndAndVelocity(double x, double T, double v) {	
-		double c3 = 10*x / Math.pow(T / v, 3);
-		double c4 = -15*x / Math.pow(T / v, 4);
-		double c5 = 6*x / Math.pow(T / v, 5);
+	public static ParkingPath withEndAndVelocity(double x, double T, double v) {			
+		double c3 = 10*Math.abs(x) / Math.pow(Math.abs(T) / v, 3);
+		double c4 = -15*Math.abs(x) / Math.pow(Math.abs(T) / v, 4);
+		double c5 = 6*Math.abs(x) / Math.pow(Math.abs(T) / v, 5);
 		
 		return ParkingPath.withCoefficients(new Double[] {c5, c4, c3, 0d, 0d, 0d}).endPoint(x, T).velocity(v);
 	}
@@ -88,7 +88,6 @@ public class ParkingPath {
 	public double calc_w(double t) {
 		//return -Math.toDegrees(calc_x_dot2(t) / (Math.pow(calc_x_dot1(t), 2) + 1));
 		
-		// previously * 0.7 because of small discrepancy due to wrong tire radius 
 		return -Math.toDegrees(calc_x_dot2(t) * v0 / (Math.pow(calc_x_dot1(t), 2) + Math.pow(v0, 2)));
 	}
 	
