@@ -21,9 +21,12 @@ import parkingRobot.INavigation;
  */
 public class ControlRST implements IControl {
 
-	enum CTRL_ALGO_STATE {
-		LINE, CORNER
+	enum State_SetPose {
+		TURN_IN_DIRECTION, DRIVE_IN_DIRECTION, TURN_TO_HEADING, IDLE
 	}
+
+	private double DIFF_HEADING_MAX = 5;
+	private double DIFF_DISTANCE_MAX = 0.02;
 
 	/**
 	 * reference to {@link IPerception.EncoderSensor} class for left robot wheel
@@ -77,15 +80,18 @@ public class ControlRST implements IControl {
 	double velocity = 0.0;
 	double angularVelocity = 0.0;
 
-	Pose startPosition = new Pose();
+	Pose pose_start = new Pose();
 	Pose currentPosition = new Pose();
-	Pose destination = new Pose();
+	Pose pose_destination = new Pose();
+
+	double ms_requiredForPath = 0;
 
 	ControlMode currentCTRLMODE = null;
+	State_SetPose state_setPose = State_SetPose.IDLE;
 
 	EncoderSensor controlRightEncoder = null;
 	EncoderSensor controlLeftEncoder = null;
-	
+
 	ParkingPath path_park = null;
 
 	int lastTime = 0;
@@ -93,7 +99,7 @@ public class ControlRST implements IControl {
 	double currentDistance = 0.0;
 	double Distance = 0.0;
 
-	double radius_tire_mm = 280;	// previously 225
+	double radius_tire_mm = 280; // previously 225
 	double distance_tires_mm = 120;
 
 	/**
@@ -123,8 +129,8 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensor();
 
 		// MONITOR (example)
-		// monitor.addControlVar("RightSensor");
-		// monitor.addControlVar("LeftSensor");
+		monitor.addControlVar("motor_right");
+		monitor.addControlVar("motor_left");
 
 		this.ctrlThread = new ControlThread(this);
 
@@ -137,7 +143,7 @@ public class ControlRST implements IControl {
 	// Inputs
 
 	/**
-	 * set velocity
+	 * Sets velocity for parking, setPose and line follow functions.
 	 * 
 	 * @see parkingRobot.IControl#setVelocity(double velocity)
 	 */
@@ -149,7 +155,8 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * set angular velocity
+	 * Sets angular velocity for VW-Control mode. This method has no effect on all
+	 * other control modes.
 	 * 
 	 * @see parkingRobot.IControl#setAngularVelocity(double angularVelocity)
 	 */
@@ -165,34 +172,48 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * Sets destination for park control. x and y are in m, but there is some math error: Changing x will
-	 * lead to a change in y too.
+	 * Sets destination for park control. x and y are in [m].
+	 * 
+	 * y is oriented straight ahead. x is oriented in left direction, facing away
+	 * from y.
 	 * 
 	 * @see parkingRobot.IControl#setDestination(double heading, double x, double y)
 	 */
 	public void setDestination(double heading, double x, double y) {
-		this.destination.setHeading((float) heading);
-		this.destination.setLocation((float) x, (float) y);
-		
-		//path_park = ParkingPath.withEnd(0.65/0.1 * x, 3.5 / 0.5 * y);
-		
+		this.pose_destination.setHeading((float) heading);
+		this.pose_destination.setLocation((float) -x, (float) y);
+
+		// path_park = ParkingPath.withEnd(0.65/0.1 * x, 3.5 / 0.5 * y);
+
 		path_park = ParkingPath.withEndAndVelocity(x + 0.03, y + 0.03, velocity);
 	}
 
 	/**
-	 * sets current pose
+	 * Sets destination pose for straight line movement. x and y are in [m].
+	 * 
+	 * y is oriented straight ahead. x is oriented in left direction, facing away
+	 * from y.
 	 * 
 	 * @see parkingRobot.IControl#setPose(Pose currentPosition)
 	 */
-	public void setPose(Pose currentPosition) {
-		// TODO Auto-generated method stub
-		this.currentPosition = currentPosition;
+	public void setPose(Pose pose) {
+		// Pose can't be assigned directly because of Java's way of copying by reference
+		pose_destination = new Pose(pose.getX(), pose.getY(), pose.getHeading());
+		pose_start = new Pose(navigation.getPose().getX(), navigation.getPose().getY(),
+				navigation.getPose().getHeading());
+
+		state_setPose = State_SetPose.TURN_IN_DIRECTION;
 	}
 
 	/**
-	 * set control mode
+	 * Sets control mode.
+	 * 
+	 * All parameters (velocity, angular velocity, destination) have to be specified
+	 * before this method is executed.
 	 */
 	public void setCtrlMode(ControlMode ctrl_mode) {
+		v0 = velocity;
+
 		this.currentCTRLMODE = ctrl_mode;
 	}
 
@@ -217,50 +238,54 @@ public class ControlRST implements IControl {
 			// exec_LINECTRL_ALGO_line();
 			break;
 		case VW_CTRL:
-			update_VWCTRL_Parameter();
-			exec_VWCTRL_ALGO();
 			break;
 		case SETPOSE:
-			update_SETPOSE_Parameter();
 			exec_SETPOSE_ALGO();
+			// update_smoothVelocity();
 			break;
 		case PARK_CTRL:
-			update_PARKCTRL_Parameter();
 			exec_PARKCTRL_ALGO();
 			break;
 		case INACTIVE:
 			exec_INACTIVE();
 			break;
 		}
-		
+
 		if (currentCTRLMODE != ControlMode.INACTIVE) {
 			update_revs();
 		}
 
-		
-
 	}
 
-	// Private methods
+	long ms_start = 0;
+	double tau = 500;
 
-	/**
-	 * update parameters during VW Control Mode
-	 */
+	double v0 = 0;
 
-	private void update_VWCTRL_Parameter() {
-		setPose(navigation.getPose());
+	private void update_smoothVelocity() {
+		if (v0 == 0) {
+			v0 = velocity;
+			ms_start = System.currentTimeMillis();
+		}
+
+		velocity = v0 * (1 - Math.exp(-(double) (System.currentTimeMillis() - ms_start) / tau));
+
+		// LCD.drawString("v_smooth: " + velocity, 0, 6);
 	}
 
 	// PIDData structs have to be initialized here so that their integral value
 	// stays constant throughout
 	// multiple method calls.
 
-	PIDData data_right = PIDData.pi(0, 0, 60, 1.5);
-	PIDData data_left = PIDData.pi(0, 0, 60, 1.5);
+	PIDData data_right = PIDData.pi(0, 0, 40, 40);
+	PIDData data_left = PIDData.pi(0, 0, 40, 40);
+
+	/**
+	 * Controls wheel speed based on a PI algorithm. This function is used for
+	 * movement in all control modes.
+	 */
 
 	private void update_revs() {
-		setPose(navigation.getPose());
-
 		// Measure angle difference and time delta between measurements
 		AngleDifferenceMeasurement meas_left = perception.getControlLeftEncoder().getEncoderMeasurement();
 		AngleDifferenceMeasurement meas_right = perception.getControlRightEncoder().getEncoderMeasurement();
@@ -268,6 +293,9 @@ public class ControlRST implements IControl {
 		// Calculate angular velocities
 		double w_meas_left = meas_left.getAngleSum() / (meas_left.getDeltaT());
 		double w_meas_right = meas_right.getAngleSum() / (meas_right.getDeltaT());
+
+		monitor.writeControlVar("motor_right", w_meas_right + "");
+		monitor.writeControlVar("motor_left", w_meas_left + "");
 
 		// Set PID Data
 		data_right.setpoint = w_motor_right;
@@ -286,18 +314,25 @@ public class ControlRST implements IControl {
 		}
 
 		// Adjust motor power based on calculated data
-		leftMotorPower += PIDController.pi_ctrl(data_left);
-		rightMotorPower += PIDController.pi_ctrl(data_right);
+		leftMotorPower = (int) PIDController.pi_ctrl(data_left);
+		rightMotorPower = (int) PIDController.pi_ctrl(data_right);
 
 		leftMotor.setPower(leftMotorPower);
 		rightMotor.setPower(rightMotorPower);
 	}
 
-	/**
-	 * update parameters during SETPOSE Control Mode
-	 */
-	private void update_SETPOSE_Parameter() {
-		setPose(navigation.getPose());
+	PIDData data_lat = PIDData.pid(0, 0, 11, 0.5, 2);
+
+	private void update_lateralControl() {
+
+		double length_startToNow = pose_start.distanceTo(navigation.getPose().getLocation());
+		double angle_endToNow = pose_destination.angleTo(navigation.getPose().getLocation());
+
+		double e_lat = length_startToNow * Math.sin(angle_endToNow);
+
+		data_lat.processVariable = e_lat;
+
+		setAngularVelocity(PIDController.pd_ctrl(data_lat));
 	}
 
 	/**
@@ -308,24 +343,113 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensor();
 	}
 
-	/**
-	 * update parameters during PARKING Control Mode
-	 */
-	private void update_PARKCTRL_Parameter() {
-		// Aufgabe 3.4
-	}
-
-	/**
-	 * The car can be driven with velocity in m/s or angular velocity in grade
-	 * during VW Control Mode optionally one of them could be set to zero for simple
-	 * test.
-	 */
-	private void exec_VWCTRL_ALGO() {
-
-	}
-
 	private void exec_SETPOSE_ALGO() {
-		// Aufgabe 3.3
+		double angl_startToDest = 0;
+		double angl_dest = 0;
+		double angl_current = 0;
+
+		switch (state_setPose) {
+		case TURN_IN_DIRECTION:
+			angl_startToDest = pose_start.angleTo(pose_destination.getLocation());
+			angl_current = Math.toDegrees(navigation.getPose().getHeading());
+
+			// Turn as long as difference of current angle and destination heading is too
+			// large.
+			// Angular velocity is set based on which way to turn is shorter
+
+			if (angl_startToDest - angl_current > DIFF_HEADING_MAX) {
+				setAngularVelocity(30);
+				setVelocity(0);
+			} else if (angl_current - angl_startToDest > DIFF_HEADING_MAX) {
+				setAngularVelocity(-30);
+				setVelocity(0);
+			} else {
+				state_setPose = State_SetPose.DRIVE_IN_DIRECTION;
+
+				ms_start = System.currentTimeMillis();
+
+				setAngularVelocity(0);
+				setVelocity(v0);
+			}
+
+			break;
+		case DRIVE_IN_DIRECTION:
+			// Safeguard in case of incorrectly set heading at the sequence's beginning
+			ms_requiredForPath = pose_start.distanceTo(pose_destination.getLocation()) / v0 * 1000;
+
+			// Drive straight ahead as long as distance is too large or as long as required
+			// time for making the distance
+			if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
+				state_setPose = State_SetPose.TURN_TO_HEADING;
+
+				ms_start = System.currentTimeMillis();
+
+				setVelocity(0);
+			} else if (System.currentTimeMillis() - ms_start > ms_requiredForPath) {
+				state_setPose = State_SetPose.TURN_TO_HEADING;
+
+				ms_start = System.currentTimeMillis();
+
+				setVelocity(0);
+			}
+
+			/*
+			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
+			 * LCD.drawString("dis=" +
+			 * pose_start.distanceTo(pose_destination.getLocation()), 0, 4);
+			 * LCD.drawString("xd="+pose_destination.getX(), 0, 5);
+			 * LCD.drawString("t="+ms_requiredForPath, 0, 6);
+			 */
+			// TODO: Implement safeguard in case destination is badly missed. For example by
+			// setting a max wait time that is proportional to velocity
+
+			update_lateralControl();
+
+			break;
+		case TURN_TO_HEADING:
+
+			angl_dest = pose_destination.getHeading();
+			angl_current = Math.toDegrees(navigation.getPose().getHeading()) % 360;
+
+			/*
+			 * if (Math.abs(angl_dest - angl_current) <= DIFF_HEADING_MAX) { state_setPose =
+			 * State_SetPose.IDLE; setAngularVelocity(0);
+			 * 
+			 * setVelocity(0); }
+			 */
+
+			if (Math.abs(angl_dest - angl_current) >= DIFF_HEADING_MAX) {
+				setAngularVelocity(-30);
+			} else if (Math.abs(angl_current - angl_dest) >= DIFF_HEADING_MAX) {
+				setAngularVelocity(30);
+			} else {
+				state_setPose = State_SetPose.IDLE;
+				setAngularVelocity(0);
+
+				setVelocity(0);
+			}
+
+			/*
+			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
+			 * LCD.drawString("agl_d=" + angl_dest, 0, 4); LCD.drawString("agl_c=" +
+			 * angl_current, 0, 5);
+			 */
+
+			break;
+
+		default:
+			/*
+			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
+			 * LCD.drawString("IDLE", 0, 4);
+			 */
+			setAngularVelocity(0);
+
+			break;
+		}
+
+		LCD.drawString("State:" + state_setPose.name(), 0, 3);
+		LCD.drawString("Dest: " + angl_dest, 0, 4);
+		Test_SetPose.showData(navigation, perception);
 	}
 
 	/**
@@ -333,22 +457,41 @@ public class ControlRST implements IControl {
 	 */
 	private void exec_PARKCTRL_ALGO() {
 		double t = (double) (System.currentTimeMillis() - lastTime) / 1000d;
-		
+
 		if (path_park != null) {
-			
-			setVelocity(path_park.calc_v(t));
-			setAngularVelocity(path_park.calc_w(t));
-			
+
+			if (path_park.getEndT() >= 0) {
+				setVelocity(path_park.calc_v(t));
+
+				if (path_park.getEndX() >= 0) {
+					setAngularVelocity(-path_park.calc_w(t));
+				} else {
+					setAngularVelocity(path_park.calc_w(t));
+				}
+			} else {
+				setVelocity(-path_park.calc_v(t));
+
+				if (path_park.getEndX() >= 0) {
+					setAngularVelocity(path_park.calc_w(t));
+				} else {
+					setAngularVelocity(-path_park.calc_w(t));
+				}
+			}
+
 			LCD.drawString("w = " + getAngularVelocity(), 0, 0);
-			
+
 			LCD.drawString("v = " + path_park.calc_v(t), 0, 1);
 			LCD.drawString("x = " + path_park.calc_x(t), 0, 2);
-			
-			if (t > path_park.T / path_park.getVelocity()) {
-				 path_park = null;
-				
+
+			if (t > Math.abs(path_park.T) / path_park.getVelocity()) {
+				path_park = null;
+
 				setVelocity(0);
 				setAngularVelocity(0);
+
+				setCtrlMode(ControlMode.INACTIVE);
+				Test_PathFollow.ctrl_ready = true;
+
 			}
 		}
 	}
@@ -359,8 +502,9 @@ public class ControlRST implements IControl {
 	}
 
 	double vel_line = 0.1;
-	PIDData data_sensor = PIDData.pid(0, 0, 0.8, 0.0, 2);
+	PIDData data_sensor = PIDData.pid(0, 0, 1, 0.0, 1);
 
+	// PIDData data_sensor = PIDData.pid(0, 0, 0.8, 0.0, 1);
 	/**
 	 * Executes the line follow algorithm based on a PID controller.
 	 * 
@@ -376,7 +520,7 @@ public class ControlRST implements IControl {
 		rightMotor.forward();
 
 		double val_left = perception.getLeftLineSensorValue();
-		double val_right = perception.getRightLineSensorValue() + 5;
+		double val_right = perception.getRightLineSensorValue();
 
 		double vel_ang = getAngularVelocity();
 
@@ -393,8 +537,7 @@ public class ControlRST implements IControl {
 	private void stop() {
 		this.leftMotor.stop();
 		this.rightMotor.stop();
-		
-		
+
 	}
 
 	/**
