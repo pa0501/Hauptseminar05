@@ -113,10 +113,15 @@ public class GuidanceAT {
 		IControl    control    = new ControlRST(perception, navigation, leftMotor, rightMotor, monitor);
 		INxtHmi  	hmi        = new HmiPLT(perception, navigation, control, monitor);
 		
+		
+		
 		monitor.startLogging();
 				
 		while(true) {
-			showData(navigation, perception);
+			//showData(navigation, perception);
+			
+			LCD.drawString("Mode_G:"+hmi.getMode(), 0, 0);
+			LCD.drawString("C_GUI:"+System.currentTimeMillis(), 0, 2);
 			
         	switch ( currentStatus )
         	{
@@ -167,7 +172,8 @@ public class GuidanceAT {
 					//State transition check
 					lastStatus = currentStatus;
 					if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
-						currentStatus = CurrentStatus.DRIVING;						
+						currentStatus = CurrentStatus.DRIVING;			
+						
 					}else if ( Button.ENTER.isDown() ){
 						currentStatus = CurrentStatus.DRIVING;
 						while(Button.ENTER.isDown()){Thread.sleep(1);} //wait for button release
@@ -218,14 +224,14 @@ public class GuidanceAT {
 	 * 
 	 * @param navigation reference to the navigation class for getting pose information
 	 */
-	protected static void showData(INavigation navigation, IPerception perception){
+	public static void showData(INavigation navigation, IPerception perception){
 		LCD.clear();	
 		
 		LCD.drawString("X (in cm): " + (navigation.getPose().getX()*100), 0, 0);
 		LCD.drawString("Y (in cm): " + (navigation.getPose().getY()*100), 0, 1);
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading()/Math.PI*180), 0, 2);
 		
-	      perception.showSensorData();
+	      //perception.showSensorData();
 		
 //    	if ( hmi.getMode() == parkingRobot.INxtHmi.Mode.SCOUT ){
 //			LCD.drawString("HMI Mode SCOUT", 0, 3);
