@@ -95,6 +95,8 @@ public class Test_PathFollow {
 	 * array and to form the course map.
 	 */
 	static Line[] map = { line0, line1, line2, line3, line4, line5, line6, line7 };
+	
+	public static boolean ctrl_ready = false;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -126,12 +128,31 @@ public class Test_PathFollow {
 
 		// Beispielhaft die Endposition, wenn der Roboter mit Sensor 1 das Hindernis
 		// sieht und nach vorne einparkt
-		control.setDestination(0, 0.25, 0.2);
+		
+		double dest_x = 0.25;
+		double dest_y = 0.25;
+		
+		control.setDestination(0, dest_x, dest_y);
+		
 		control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
+		
+		
 
 		LCD.clear();
 
 		while (true) {
+			if (ctrl_ready == true) {
+				ctrl_ready = false;
+				
+				dest_x = -dest_x;
+				dest_y = -dest_y;
+
+				control.setVelocity(0.05);
+				control.setDestination(0, dest_x, dest_y);
+				control.setStartTime((int) System.currentTimeMillis());
+				control.setCtrlMode(ControlMode.PARK_CTRL);
+			}
+			
 			if (Button.ESCAPE.isDown()) {
 				System.exit(0);
 				;
