@@ -81,15 +81,20 @@ public class HmiSenderThread extends Thread{
 				while (newSlots > 0) {
 
 					ParkingSlot newSlot = hmi.navigation.getParkingSlots()[hmi.noOfParkingSlots - newSlots];
-					hmi.dataOut.writeInt(Command.OUT_PARKSLOT.ordinal());
-					hmi.dataOut.writeInt(newSlot.getStatus().ordinal());
-					hmi.dataOut.writeInt(newSlot.getID());
-					hmi.dataOut.writeFloat(newSlot.getFrontBoundaryPosition().x);
-					hmi.dataOut.writeFloat(newSlot.getFrontBoundaryPosition().y);
-					hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().x);
-					hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().y);
-					hmi.dataOut.flush();
+					
+					if (newSlot != null) {
+						hmi.dataOut.writeInt(Command.OUT_PARKSLOT.ordinal());
+						hmi.dataOut.writeInt(newSlot.getStatus().ordinal());
+						hmi.dataOut.writeInt(newSlot.getID());
+						hmi.dataOut.writeFloat(newSlot.getFrontBoundaryPosition().x);
+						hmi.dataOut.writeFloat(newSlot.getFrontBoundaryPosition().y);
+						hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().x);
+						hmi.dataOut.writeFloat(newSlot.getBackBoundaryPosition().y);
+						hmi.dataOut.flush();
+						
+					}
 					newSlots--;
+					
 				}
 
 			}
