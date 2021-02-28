@@ -90,7 +90,7 @@ public interface IControl {
 	 * set start time
 	 * @param startTime start time
 	 */
-	public void setStartTime(int startTime);
+	public void setStartTime(long startTime);
 	
 	
 	/**
