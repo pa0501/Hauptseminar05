@@ -45,7 +45,7 @@ import parkingRobot.hsamr0.PerceptionPMP;
  * class thread is only handled in a synchronized context to avoid inconsistent
  * or corrupt data!
  */
-public class Test_Vert2 {
+public class Test_Vert2_1 {
 
 	/**
 	 * states for the main finite state machine. This main states are requirements
@@ -225,7 +225,7 @@ public class Test_Vert2 {
 	 * @return actual state of the main finite state machine
 	 */
 	public static CurrentStatus getCurrentStatus() {
-		return Test_Vert2.currentStatus;
+		return Test_Vert2_1.currentStatus;
 	}
 
 	/**
