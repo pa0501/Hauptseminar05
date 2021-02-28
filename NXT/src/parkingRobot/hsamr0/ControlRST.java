@@ -418,6 +418,9 @@ public class ControlRST implements IControl {
 			
 			//if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
 			
+			LCD.drawString("dis:  " + distance, 0, 4);
+			LCD.drawString("prev: " + distance_prev, 0, 5);
+			
 			if (distance > distance_prev) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
 
@@ -432,7 +435,7 @@ public class ControlRST implements IControl {
 				setVelocity(0);
 			}*/
 			
-			if (distance < distance_prev && distance < 0.2) {
+			if (distance < distance_prev && pose_start.distanceTo(navigation.getPose().getLocation()) > 0.2) {
 				distance_prev = distance;
 			}
 
@@ -473,7 +476,7 @@ public class ControlRST implements IControl {
 				setAngularVelocity(0);
 				setVelocity(0);
 				
-				Test_Vert2.notify_setPose_ready();
+				Test_Vert2_1.notify_setPose_ready();
 			}
 			
 
@@ -583,7 +586,7 @@ public class ControlRST implements IControl {
 
 		setAngularVelocity(vel_ang);
 		
-		Test_Vert2.showData(navigation, perception);
+		Test_Vert2_1.showData(navigation, perception);
 	}
 
 	private void stop() {
