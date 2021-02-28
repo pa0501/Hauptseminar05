@@ -25,7 +25,7 @@ public class ControlRST implements IControl {
 		TURN_IN_DIRECTION, DRIVE_IN_DIRECTION, TURN_TO_HEADING, IDLE
 	}
 
-	private double DIFF_HEADING_MAX = 5;
+	private double DIFF_HEADING_MAX = 0.5;
 	private double DIFF_DISTANCE_MAX = 0.02;
 
 	/**
@@ -94,7 +94,7 @@ public class ControlRST implements IControl {
 
 	ParkingPath path_park = null;
 
-	int lastTime = 0;
+	long lastTime = 0;
 
 	double currentDistance = 0.0;
 	double Distance = 0.0;
@@ -191,8 +191,8 @@ public class ControlRST implements IControl {
 	/**
 	 * Sets destination pose for straight line movement. x and y are in [m].
 	 * 
-	 * y is oriented straight ahead. x is oriented in left direction, facing away
-	 * from y.
+	 * x is oriented straight ahead. y is oriented in left direction, facing away
+	 * from x.
 	 * 
 	 * @see parkingRobot.IControl#setPose(Pose currentPosition)
 	 */
@@ -213,6 +213,13 @@ public class ControlRST implements IControl {
 	 */
 	public void setCtrlMode(ControlMode ctrl_mode) {
 		v0 = velocity;
+		w0 = angularVelocity;
+		
+		setStartTime(System.currentTimeMillis());
+		
+		data_left.integral = 0;
+		data_right.integral = 0;
+		data_sensor.integral = 0;
 
 		this.currentCTRLMODE = ctrl_mode;
 	}
@@ -220,7 +227,7 @@ public class ControlRST implements IControl {
 	/**
 	 * set start time
 	 */
-	public void setStartTime(int startTime) {
+	public void setStartTime(long startTime) {
 		this.lastTime = startTime;
 	}
 
@@ -261,6 +268,7 @@ public class ControlRST implements IControl {
 	double tau = 500;
 
 	double v0 = 0;
+	double w0 = 0;
 
 	private void update_smoothVelocity() {
 		if (v0 == 0) {
@@ -277,8 +285,8 @@ public class ControlRST implements IControl {
 	// stays constant throughout
 	// multiple method calls.
 
-	PIDData data_right = PIDData.pi(0, 0, 40, 40);
-	PIDData data_left = PIDData.pi(0, 0, 40, 40);
+	PIDData data_right = PIDData.pi(0, 0, 40, 50);
+	PIDData data_left = PIDData.pi(0, 0, 40, 50);
 
 	/**
 	 * Controls wheel speed based on a PI algorithm. This function is used for
@@ -321,11 +329,16 @@ public class ControlRST implements IControl {
 		rightMotor.setPower(rightMotorPower);
 	}
 
-	PIDData data_lat = PIDData.pid(0, 0, 11, 0.5, 2);
+	PIDData data_lat = PIDData.pid(0, 0, 5, 0, 5);
 
 	private void update_lateralControl() {
+		
+		if (System.currentTimeMillis() - lastTime < 1000) {
+			//return;
+		}
 
-		double length_startToNow = pose_start.distanceTo(navigation.getPose().getLocation());
+		//double length_startToNow = pose_start.distanceTo(navigation.getPose().getLocation());
+		double length_startToNow = pose_destination.distanceTo(navigation.getPose().getLocation());
 		double angle_endToNow = pose_destination.angleTo(navigation.getPose().getLocation());
 
 		double e_lat = length_startToNow * Math.sin(angle_endToNow);
@@ -343,6 +356,8 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensor();
 	}
 
+	double distance_prev = 0;
+	
 	private void exec_SETPOSE_ALGO() {
 		double angl_startToDest = 0;
 		double angl_dest = 0;
@@ -358,10 +373,10 @@ public class ControlRST implements IControl {
 			// Angular velocity is set based on which way to turn is shorter
 
 			if (angl_startToDest - angl_current > DIFF_HEADING_MAX) {
-				setAngularVelocity(30);
+				setAngularVelocity(w0);
 				setVelocity(0);
 			} else if (angl_current - angl_startToDest > DIFF_HEADING_MAX) {
-				setAngularVelocity(-30);
+				setAngularVelocity(-w0);
 				setVelocity(0);
 			} else {
 				state_setPose = State_SetPose.DRIVE_IN_DIRECTION;
@@ -370,27 +385,55 @@ public class ControlRST implements IControl {
 
 				setAngularVelocity(0);
 				setVelocity(v0);
+				
+				distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
 			}
+			
+
+			LCD.drawString("Dest: " + angl_startToDest, 0, 4);
+			LCD.drawString("Cur:" + angl_current, 0, 5);
 
 			break;
 		case DRIVE_IN_DIRECTION:
 			// Safeguard in case of incorrectly set heading at the sequence's beginning
 			ms_requiredForPath = pose_start.distanceTo(pose_destination.getLocation()) / v0 * 1000;
+			
+			angl_startToDest = pose_start.angleTo(pose_destination.getLocation());
+			angl_current = Math.toDegrees(navigation.getPose().getHeading());
+
+			// Turn as long as difference of current angle and destination heading is too
+			// large.
+			// Angular velocity is set based on which way to turn is shorter
+
+			if (angl_startToDest - angl_current > DIFF_HEADING_MAX) {
+				//setAngularVelocity(w0);
+			} else if (angl_current - angl_startToDest > DIFF_HEADING_MAX) {
+				//setAngularVelocity(-w0);
+			}
 
 			// Drive straight ahead as long as distance is too large or as long as required
 			// time for making the distance
-			if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
+			
+			double distance = navigation.getPose().distanceTo(pose_destination.getLocation());
+			
+			//if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
+			
+			if (distance > distance_prev) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
 
 				ms_start = System.currentTimeMillis();
 
 				setVelocity(0);
-			} else if (System.currentTimeMillis() - ms_start > ms_requiredForPath) {
+			}/* else if (System.currentTimeMillis() - ms_start > ms_requiredForPath) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
 
 				ms_start = System.currentTimeMillis();
 
 				setVelocity(0);
+			}*/
+			
+			if (distance < distance_prev && distance < 0.2) {
+				distance_prev = distance;
 			}
 
 			/*
@@ -418,16 +461,24 @@ public class ControlRST implements IControl {
 			 * setVelocity(0); }
 			 */
 
-			if (Math.abs(angl_dest - angl_current) >= DIFF_HEADING_MAX) {
-				setAngularVelocity(-30);
-			} else if (Math.abs(angl_current - angl_dest) >= DIFF_HEADING_MAX) {
-				setAngularVelocity(30);
+			if (angl_dest - angl_current >= DIFF_HEADING_MAX) {
+				setAngularVelocity(w0);
+				LCD.drawString(">", 0, 6);
+			} else if (angl_current - angl_dest >= DIFF_HEADING_MAX) {
+				setAngularVelocity(-w0);
+				LCD.drawString("<", 0, 6);
 			} else {
 				state_setPose = State_SetPose.IDLE;
+				
 				setAngularVelocity(0);
-
 				setVelocity(0);
+				
+				Test_Vert2.notify_setPose_ready();
 			}
+			
+
+			LCD.drawString("Dest: " + angl_dest, 0, 4);
+			LCD.drawString("Cur:" + angl_current, 0, 5);
 
 			/*
 			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
@@ -448,7 +499,6 @@ public class ControlRST implements IControl {
 		}
 
 		LCD.drawString("State:" + state_setPose.name(), 0, 3);
-		LCD.drawString("Dest: " + angl_dest, 0, 4);
 		Test_SetPose.showData(navigation, perception);
 	}
 
@@ -532,6 +582,8 @@ public class ControlRST implements IControl {
 		vel_ang = PIDController.pid_ctrl(data_sensor);
 
 		setAngularVelocity(vel_ang);
+		
+		Test_Vert2.showData(navigation, perception);
 	}
 
 	private void stop() {
