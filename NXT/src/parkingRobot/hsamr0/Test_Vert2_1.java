@@ -129,7 +129,7 @@ public class Test_Vert2_1 {
 		monitor.startLogging();
 		
 		double distance_prev = 0;
-		Pose pose_destination = new Pose(0.0f, 0.0f, 0f);
+		Pose pose_destination = new Pose(0.8f, 0.0f, 0f);
 		
 		index_setPose = 0;
 		
@@ -149,7 +149,7 @@ public class Test_Vert2_1 {
 					control.setAngularVelocity(15);
 					
 					//control.setStartTime(System.currentTimeMillis());
-					control.setPose(new Pose(0.5f, 0f, 0f));
+					control.setPose(new Pose(1.2f, 0f, 0f));
 					control.setCtrlMode(IControl.ControlMode.SETPOSE);
 					break;
 
@@ -159,7 +159,7 @@ public class Test_Vert2_1 {
 					control.setVelocity(0.05);
 					control.setAngularVelocity(30);
 
-					control.setPose(new Pose(0.5f, 0.3f, 180));
+					control.setPose(new Pose(1.2f, 0.3f, 180));
 					control.setCtrlMode(IControl.ControlMode.SETPOSE);
 					
 					break;
