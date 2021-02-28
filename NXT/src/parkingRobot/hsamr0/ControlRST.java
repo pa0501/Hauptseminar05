@@ -418,8 +418,8 @@ public class ControlRST implements IControl {
 			
 			//if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
 			
-			LCD.drawString("dis:  " + distance, 0, 4);
-			LCD.drawString("prev: " + distance_prev, 0, 5);
+			//LCD.drawString("dis:  " + distance, 0, 4);
+			//LCD.drawString("prev: " + distance_prev, 0, 5);
 			
 			if (distance > distance_prev) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
