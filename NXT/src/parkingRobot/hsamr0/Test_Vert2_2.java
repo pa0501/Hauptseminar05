@@ -159,9 +159,6 @@ public class Test_Vert2_2 {
 
 				case 1:
 					
-					index_setPose = 4;
-					break;
-					/*
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						
@@ -172,8 +169,8 @@ public class Test_Vert2_2 {
 						
 						distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
 					}
-					
-					break;*/
+				
+					break;
 				case 2:
 					if (System.currentTimeMillis() - ms_start > 1000) {
 						notify_setPose_ready();
