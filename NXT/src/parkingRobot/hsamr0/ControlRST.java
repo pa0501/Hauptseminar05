@@ -329,23 +329,24 @@ public class ControlRST implements IControl {
 		rightMotor.setPower(rightMotorPower);
 	}
 
-	PIDData data_lat = PIDData.pid(0, 0, 5, 0, 5);
+	PIDData data_lat = PIDData.pid(0, 0, 1, 0, 50);
+	
+	boolean setpoint_set = false;
 
 	private void update_lateralControl() {
 		
-		if (System.currentTimeMillis() - lastTime < 1000) {
-			//return;
-		}
-
-		//double length_startToNow = pose_start.distanceTo(navigation.getPose().getLocation());
 		double length_startToNow = pose_destination.distanceTo(navigation.getPose().getLocation());
 		double angle_endToNow = pose_destination.angleTo(navigation.getPose().getLocation());
+		
+		if (System.currentTimeMillis() - lastTime < 2000) {
+			return;
+		}
 
 		double e_lat = length_startToNow * Math.sin(angle_endToNow);
 
 		data_lat.processVariable = e_lat;
 
-		setAngularVelocity(PIDController.pd_ctrl(data_lat));
+		setAngularVelocity(-PIDController.pd_ctrl(data_lat));
 	}
 
 	/**
@@ -466,10 +467,10 @@ public class ControlRST implements IControl {
 
 			if (angl_dest - angl_current >= DIFF_HEADING_MAX) {
 				setAngularVelocity(w0);
-				LCD.drawString(">", 0, 6);
+				//LCD.drawString(">", 0, 6);
 			} else if (angl_current - angl_dest >= DIFF_HEADING_MAX) {
 				setAngularVelocity(-w0);
-				LCD.drawString("<", 0, 6);
+				//LCD.drawString("<", 0, 6);
 			} else {
 				state_setPose = State_SetPose.IDLE;
 				
@@ -477,11 +478,12 @@ public class ControlRST implements IControl {
 				setVelocity(0);
 				
 				Test_Vert2_1.notify_setPose_ready();
+				Test_Vert2_2.notify_setPose_ready();
 			}
 			
 
-			LCD.drawString("Dest: " + angl_dest, 0, 4);
-			LCD.drawString("Cur:" + angl_current, 0, 5);
+			//LCD.drawString("Dest: " + angl_dest, 0, 4);
+			//LCD.drawString("Cur:" + angl_current, 0, 5);
 
 			/*
 			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
@@ -544,6 +546,8 @@ public class ControlRST implements IControl {
 
 				setCtrlMode(ControlMode.INACTIVE);
 				Test_PathFollow.ctrl_ready = true;
+				
+				Test_Vert2_2.notify_setPose_ready();
 
 			}
 		}
