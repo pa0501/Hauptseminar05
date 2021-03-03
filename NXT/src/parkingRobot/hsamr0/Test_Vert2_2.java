@@ -103,6 +103,8 @@ public class Test_Vert2_2 {
 	static boolean setPose_ready = true;
 	
 	static long ms_start = 0;
+	
+	static Pose pose_atStartOfBlock = new Pose();
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -130,7 +132,8 @@ public class Test_Vert2_2 {
 		monitor.startLogging();
 		
 		double distance_prev = 0;
-		Pose pose_destination = new Pose(0.8f, 0.0f, 0f);
+		Pose pose_destination = new Pose(0.7f, 0.0f, 0);
+		
 		
 		index_setPose = 0;
 		
@@ -150,12 +153,15 @@ public class Test_Vert2_2 {
 					control.setAngularVelocity(15);
 					
 					//control.setStartTime(System.currentTimeMillis());
-					control.setPose(new Pose(0.5f, 0f, 0f));
+					control.setPose(new Pose(0.2f, 0f, 0f));
 					control.setCtrlMode(IControl.ControlMode.SETPOSE);
 					break;
 
 				case 1:
 					
+					index_setPose = 4;
+					break;
+					/*
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						
@@ -167,9 +173,90 @@ public class Test_Vert2_2 {
 						distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
 					}
 					
-					break;
-
+					break;*/
 				case 2:
+					if (System.currentTimeMillis() - ms_start > 1000) {
+						notify_setPose_ready();
+					}
+					
+					break;
+				case 3:
+					setPose_ready = false;
+					
+					if (currentStatus != CurrentStatus.DRIVING) {
+						currentStatus = CurrentStatus.DRIVING;
+						
+						control.setVelocity(0.05);
+						control.setDestination(0, 0.4f, -0.3f);
+						control.setStartTime((int) System.currentTimeMillis());
+						control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
+						
+						distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
+					}
+					
+					break;
+					
+				case 4:
+					if (System.currentTimeMillis() - ms_start > 1000) {
+						notify_setPose_ready();
+					}
+					
+					break;
+					
+				case 5:
+					if (currentStatus != CurrentStatus.DRIVING) {
+						currentStatus = CurrentStatus.DRIVING;
+						control.setCtrlMode(IControl.ControlMode.LINE_CTRL);
+						
+						setPoseAtStartOfBlock(navigation.getPose());
+						
+						distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
+					}
+					
+					double distance = navigation.getPose().distanceTo(pose_destination.getLocation());
+					
+					if (pose_atStartOfBlock.distanceTo(navigation.getPose().getLocation()) > 0.05f) {
+						if (distance_prev < distance) {
+							notify_setPose_ready();
+							control.setCtrlMode(ControlMode.INACTIVE);
+							currentStatus = CurrentStatus.INACTIVE;
+						}
+					}
+					
+					distance_prev = distance;
+					
+					LCD.drawString("dis:  " + distance, 0, 4);
+					LCD.drawString("prev: " + distance_prev, 0, 5);
+					
+					break;
+				
+					
+				case 6:
+					setPose_ready = false;
+
+					control.setVelocity(0.1);
+					control.setAngularVelocity(40);
+					
+					//control.setStartTime(System.currentTimeMillis());
+					
+					Pose pose_corner = new Pose(navigation.getPose().getX(), navigation.getPose().getY(), navigation.getPose().getHeading());
+					pose_corner.translate(0.02f, -0.2f);
+					pose_corner.rotateUpdate(-90);
+	
+					
+					control.setPose(pose_corner);
+					control.setCtrlMode(IControl.ControlMode.SETPOSE);
+					
+					break;
+					
+				case 7:
+					if (System.currentTimeMillis() - ms_start > 1000) {
+						notify_setPose_ready();
+					}
+					
+					break;
+					
+				case 8:
 					setPose_ready = false;
 					
 					if (currentStatus != CurrentStatus.DRIVING) {
@@ -185,18 +272,21 @@ public class Test_Vert2_2 {
 					
 					break;
 					
-				case 3:
+				case 9:
 					if (System.currentTimeMillis() - ms_start > 1000) {
 						notify_setPose_ready();
 					}
 					
 					break;
-				case 4:
+					
+				case 10:
+					setPose_ready = false;
+					
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						
 						control.setVelocity(0.05);
-						control.setDestination(0, -0.4f, 0.3f);
+						control.setDestination(0, -0.4f, -0.3f);
 						control.setStartTime((int) System.currentTimeMillis());
 						control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
 						
@@ -204,6 +294,20 @@ public class Test_Vert2_2 {
 					}
 					
 					break;
+					
+					
+				case 11:
+					if (currentStatus != CurrentStatus.DRIVING) {
+						currentStatus = CurrentStatus.DRIVING;
+						control.setCtrlMode(IControl.ControlMode.LINE_CTRL);
+						
+						setPoseAtStartOfBlock(navigation.getPose());
+						
+						distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
+					}
+					
+					break;
+					
 				default:
 					//System.exit(0);
 
@@ -218,6 +322,10 @@ public class Test_Vert2_2 {
 		}
 	}
 
+	private static void setPoseAtStartOfBlock(Pose pose) {
+		pose_atStartOfBlock = new Pose(pose.getX(), pose.getY(), pose.getHeading());
+	}
+	
 	/**
 	 * returns the actual state of the main finite state machine as defined by the
 	 * requirements
