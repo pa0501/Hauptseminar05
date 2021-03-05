@@ -7,6 +7,8 @@ import parkingRobot.IMonitor;
 import parkingRobot.IPerception;
 import parkingRobot.IPerception.*;
 import parkingRobot.hsamr0.util.Average;
+import parkingRobot.hsamr0.util.PosePath;
+import lejos.geom.Point;
 import lejos.nxt.Button;
 import lejos.nxt.LCD;
 import lejos.nxt.Motor;
@@ -83,6 +85,8 @@ public class ControlRST implements IControl {
 	Pose pose_start = new Pose();
 	Pose currentPosition = new Pose();
 	Pose pose_destination = new Pose();
+	
+	PosePath path_setPose = new PosePath();
 
 	double ms_requiredForPath = 0;
 
@@ -201,6 +205,8 @@ public class ControlRST implements IControl {
 		pose_destination = new Pose(pose.getX(), pose.getY(), pose.getHeading());
 		pose_start = new Pose(navigation.getPose().getX(), navigation.getPose().getY(),
 				navigation.getPose().getHeading());
+		
+		path_setPose = new PosePath(pose_start, pose_destination, velocity);
 
 		state_setPose = State_SetPose.TURN_IN_DIRECTION;
 	}
@@ -329,24 +335,26 @@ public class ControlRST implements IControl {
 		rightMotor.setPower(rightMotorPower);
 	}
 
-	PIDData data_lat = PIDData.pid(0, 0, 1, 0, 50);
+	PIDData data_lat = PIDData.pid(0, 0, 20, 0, 50);
 	
 	boolean setpoint_set = false;
 
 	private void update_lateralControl() {
 		
-		double length_startToNow = pose_destination.distanceTo(navigation.getPose().getLocation());
-		double angle_endToNow = pose_destination.angleTo(navigation.getPose().getLocation());
 		
-		if (System.currentTimeMillis() - lastTime < 2000) {
-			return;
-		}
-
-		double e_lat = length_startToNow * Math.sin(angle_endToNow);
-
+		double time_s = (System.currentTimeMillis() - lastTime) / 1000;
+		
+		double e_lat = path_setPose.calculate_e_lat(time_s, navigation.getPose());
+		
+		Point point_target = path_setPose.calculate_point_target(time_s);
+		
+		LCD.drawString("e_lat=" + e_lat, 0, 5);
+		LCD.drawString("t_x=" + point_target.getX(), 0, 6);
+		LCD.drawString("t_y=" + point_target.getY(), 0, 7);
+		
 		data_lat.processVariable = e_lat;
 
-		setAngularVelocity(-PIDController.pd_ctrl(data_lat));
+		setAngularVelocity(PIDController.pd_ctrl(data_lat));
 	}
 
 	/**
@@ -369,6 +377,7 @@ public class ControlRST implements IControl {
 			angl_startToDest = pose_start.angleTo(pose_destination.getLocation());
 			angl_current = Math.toDegrees(navigation.getPose().getHeading());
 
+			
 			// Turn as long as difference of current angle and destination heading is too
 			// large.
 			// Angular velocity is set based on which way to turn is shorter
