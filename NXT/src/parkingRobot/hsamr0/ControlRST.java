@@ -133,8 +133,8 @@ public class ControlRST implements IControl {
 		this.lineSensorLeft = perception.getLeftLineSensor();
 
 		// MONITOR (example)
-		monitor.addControlVar("motor_right");
-		monitor.addControlVar("motor_left");
+		monitor.addControlVar("x");
+		monitor.addControlVar("y");
 
 		this.ctrlThread = new ControlThread(this);
 
@@ -153,6 +153,8 @@ public class ControlRST implements IControl {
 	 */
 	public void setVelocity(double velocity) {
 		this.velocity = velocity;
+		
+		ms_lastVelocityUpdate = System.currentTimeMillis();
 
 		drive(this.velocity, this.angularVelocity);
 
@@ -311,12 +313,16 @@ public class ControlRST implements IControl {
 		monitor.writeControlVar("motor_right", w_meas_right + "");
 		monitor.writeControlVar("motor_left", w_meas_left + "");
 
-		// Set PID Data
+		
+			
 		data_right.setpoint = w_motor_right;
 		data_right.processVariable = w_meas_right;
 
 		data_left.setpoint = w_motor_left;
 		data_left.processVariable = w_meas_left;
+
+		
+		
 
 		// Had to add this, otherwise the robot wouldn't start driving for some reason.
 		// I guess it could be related to threading.
@@ -340,19 +346,14 @@ public class ControlRST implements IControl {
 	boolean setpoint_set = false;
 
 	private void update_lateralControl() {
-		
-		
 		double time_s = (System.currentTimeMillis() - lastTime) / 1000;
 		
 		double e_lat = path_setPose.calculate_e_lat(time_s, navigation.getPose());
 		
-		Point point_target = path_setPose.calculate_point_target(time_s);
-		
-		LCD.drawString("e_lat=" + e_lat, 0, 5);
-		LCD.drawString("t_x=" + point_target.getX(), 0, 6);
-		LCD.drawString("t_y=" + point_target.getY(), 0, 7);
-		
 		data_lat.processVariable = e_lat;
+
+		monitor.writeControlVar("x", navigation.getPose().getX() + "");
+		monitor.writeControlVar("y", navigation.getPose().getY() + "");
 
 		setAngularVelocity(PIDController.pd_ctrl(data_lat));
 	}
@@ -431,33 +432,16 @@ public class ControlRST implements IControl {
 			//LCD.drawString("dis:  " + distance, 0, 4);
 			//LCD.drawString("prev: " + distance_prev, 0, 5);
 			
-			if (distance > distance_prev) {
+			if (distance > distance_prev && pose_start.distanceTo(navigation.getPose().getLocation()) > 0.2) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
 
 				ms_start = System.currentTimeMillis();
 
 				setVelocity(0);
-			}/* else if (System.currentTimeMillis() - ms_start > ms_requiredForPath) {
-				state_setPose = State_SetPose.TURN_TO_HEADING;
-
-				ms_start = System.currentTimeMillis();
-
-				setVelocity(0);
-			}*/
-			
-			if (distance < distance_prev && pose_start.distanceTo(navigation.getPose().getLocation()) > 0.2) {
-				distance_prev = distance;
 			}
-
-			/*
-			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
-			 * LCD.drawString("dis=" +
-			 * pose_start.distanceTo(pose_destination.getLocation()), 0, 4);
-			 * LCD.drawString("xd="+pose_destination.getX(), 0, 5);
-			 * LCD.drawString("t="+ms_requiredForPath, 0, 6);
-			 */
-			// TODO: Implement safeguard in case destination is badly missed. For example by
-			// setting a max wait time that is proportional to velocity
+			
+			distance_prev = distance;
+			
 
 			update_lateralControl();
 
@@ -605,8 +589,13 @@ public class ControlRST implements IControl {
 	private void stop() {
 		this.leftMotor.stop();
 		this.rightMotor.stop();
+		
+		
 
 	}
+
+	long ms_lastVelocityUpdate = 0;
+
 
 	/**
 	 * calculates the left and right angle speed of the both motors with given
@@ -615,10 +604,17 @@ public class ControlRST implements IControl {
 	 * @param v [m/s] velocity of the robot
 	 * @param w [deg/s] angle velocity of the robot
 	 */
-
+	
 	private void drive(double v, double w) {
+		//double factor_smooth = (1 - Math.exp(- (double) (System.currentTimeMillis() - ms_lastVelocityUpdate) / (double) 200));
+		double factor_smooth = 1;
+		
+		if (currentCTRLMODE == ControlMode.SETPOSE) {
+			factor_smooth = (1 - Math.exp(- (double) (System.currentTimeMillis() - ms_lastVelocityUpdate) / (double) 100));
+		}
+		
 		double w_radPms = w * Math.PI / 180;
-		double v_mmPs = v * 1000;
+		double v_mmPs = v * 1000 * factor_smooth;
 
 		double vr_mmPms = v_mmPs + w_radPms * distance_tires_mm / 2;
 		double vl_mmPms = v_mmPs - w_radPms * distance_tires_mm / 2;
