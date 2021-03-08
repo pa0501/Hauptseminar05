@@ -85,7 +85,7 @@ public class ControlRST implements IControl {
 	Pose pose_start = new Pose();
 	Pose currentPosition = new Pose();
 	Pose pose_destination = new Pose();
-	
+
 	PosePath path_setPose = new PosePath();
 
 	double ms_requiredForPath = 0;
@@ -150,10 +150,11 @@ public class ControlRST implements IControl {
 	 * Sets velocity for parking, setPose and line follow functions.
 	 * 
 	 * @see parkingRobot.IControl#setVelocity(double velocity)
+	 * @param v [m/s] velocity of the robot
 	 */
 	public void setVelocity(double velocity) {
 		this.velocity = velocity;
-		
+
 		ms_lastVelocityUpdate = System.currentTimeMillis();
 
 		drive(this.velocity, this.angularVelocity);
@@ -161,10 +162,11 @@ public class ControlRST implements IControl {
 	}
 
 	/**
-	 * Sets angular velocity for VW-Control mode. This method has no effect on all
-	 * other control modes.
+	 * Sets angular velocity for setPose-Control mode. This method has no effect on
+	 * all other control modes.
 	 * 
 	 * @see parkingRobot.IControl#setAngularVelocity(double angularVelocity)
+	 * @param w [rad/s] angular velocity of the robot
 	 */
 	public void setAngularVelocity(double angularVelocity) {
 		this.angularVelocity = angularVelocity;
@@ -181,9 +183,13 @@ public class ControlRST implements IControl {
 	 * Sets destination for park control. x and y are in [m].
 	 * 
 	 * y is oriented straight ahead. x is oriented in left direction, facing away
-	 * from y.
+	 * from y. Coordinate origin is current robot position. So x and y are set
+	 * relative to start position of parking sequence.
 	 * 
 	 * @see parkingRobot.IControl#setDestination(double heading, double x, double y)
+	 * @param heading [rad] target heading relative to starting point
+	 * @param x [m] target x position relative to starting point
+	 * @param y [m] target y position relative to starting point
 	 */
 	public void setDestination(double heading, double x, double y) {
 		this.pose_destination.setHeading((float) heading);
@@ -198,16 +204,20 @@ public class ControlRST implements IControl {
 	 * Sets destination pose for straight line movement. x and y are in [m].
 	 * 
 	 * x is oriented straight ahead. y is oriented in left direction, facing away
-	 * from x.
+	 * from x. Coordinate origin is the robot's positon at program start. So x and y
+	 * define an absolute position.
 	 * 
 	 * @see parkingRobot.IControl#setPose(Pose currentPosition)
+	 * @param heading [rad] absolute target heading
+	 * @param x [m] absolute target x position
+	 * @param y [m] absolute target y position
 	 */
 	public void setPose(Pose pose) {
 		// Pose can't be assigned directly because of Java's way of copying by reference
 		pose_destination = new Pose(pose.getX(), pose.getY(), pose.getHeading());
 		pose_start = new Pose(navigation.getPose().getX(), navigation.getPose().getY(),
 				navigation.getPose().getHeading());
-		
+
 		path_setPose = new PosePath(pose_start, pose_destination, velocity);
 
 		state_setPose = State_SetPose.TURN_IN_DIRECTION;
@@ -222,9 +232,9 @@ public class ControlRST implements IControl {
 	public void setCtrlMode(ControlMode ctrl_mode) {
 		v0 = velocity;
 		w0 = angularVelocity;
-		
+
 		setStartTime(System.currentTimeMillis());
-		
+
 		data_left.integral = 0;
 		data_right.integral = 0;
 		data_sensor.integral = 0;
@@ -313,16 +323,11 @@ public class ControlRST implements IControl {
 		monitor.writeControlVar("motor_right", w_meas_right + "");
 		monitor.writeControlVar("motor_left", w_meas_left + "");
 
-		
-			
 		data_right.setpoint = w_motor_right;
 		data_right.processVariable = w_meas_right;
 
 		data_left.setpoint = w_motor_left;
 		data_left.processVariable = w_meas_left;
-
-		
-		
 
 		// Had to add this, otherwise the robot wouldn't start driving for some reason.
 		// I guess it could be related to threading.
@@ -342,14 +347,18 @@ public class ControlRST implements IControl {
 	}
 
 	PIDData data_lat = PIDData.pid(0, 0, 20, 0, 50);
-	
+
 	boolean setpoint_set = false;
+
+	/**
+	 * Controls lateral deviation. This method is only used for setPose algorithm.
+	 */
 
 	private void update_lateralControl() {
 		double time_s = (System.currentTimeMillis() - lastTime) / 1000;
-		
+
 		double e_lat = path_setPose.calculate_e_lat(time_s, navigation.getPose());
-		
+
 		data_lat.processVariable = e_lat;
 
 		monitor.writeControlVar("x", navigation.getPose().getX() + "");
@@ -367,7 +376,7 @@ public class ControlRST implements IControl {
 	}
 
 	double distance_prev = 0;
-	
+
 	private void exec_SETPOSE_ALGO() {
 		double angl_startToDest = 0;
 		double angl_dest = 0;
@@ -378,10 +387,9 @@ public class ControlRST implements IControl {
 			angl_startToDest = pose_start.angleTo(pose_destination.getLocation());
 			angl_current = Math.toDegrees(navigation.getPose().getHeading());
 
-			
 			// Turn as long as difference of current angle and destination heading is too
 			// large.
-			// Angular velocity is set based on which way to turn is shorter
+			// Angular velocity is set based on which way to turn is shorter.
 
 			if (angl_startToDest - angl_current > DIFF_HEADING_MAX) {
 				setAngularVelocity(w0);
@@ -396,10 +404,9 @@ public class ControlRST implements IControl {
 
 				setAngularVelocity(0);
 				setVelocity(v0);
-				
+
 				distance_prev = navigation.getPose().distanceTo(pose_destination.getLocation());
 			}
-			
 
 			LCD.drawString("Dest: " + angl_startToDest, 0, 4);
 			LCD.drawString("Cur:" + angl_current, 0, 5);
@@ -408,7 +415,7 @@ public class ControlRST implements IControl {
 		case DRIVE_IN_DIRECTION:
 			// Safeguard in case of incorrectly set heading at the sequence's beginning
 			ms_requiredForPath = pose_start.distanceTo(pose_destination.getLocation()) / v0 * 1000;
-			
+
 			angl_startToDest = pose_start.angleTo(pose_destination.getLocation());
 			angl_current = Math.toDegrees(navigation.getPose().getHeading());
 
@@ -417,21 +424,18 @@ public class ControlRST implements IControl {
 			// Angular velocity is set based on which way to turn is shorter
 
 			if (angl_startToDest - angl_current > DIFF_HEADING_MAX) {
-				//setAngularVelocity(w0);
+				// setAngularVelocity(w0);
 			} else if (angl_current - angl_startToDest > DIFF_HEADING_MAX) {
-				//setAngularVelocity(-w0);
+				// setAngularVelocity(-w0);
 			}
 
-			// Drive straight ahead as long as distance is too large or as long as required
-			// time for making the distance
-			
+			// Drive straight ahead as long as distance is too large.
+
 			double distance = navigation.getPose().distanceTo(pose_destination.getLocation());
-			
-			//if (navigation.getPose().distanceTo(pose_destination.getLocation()) <= DIFF_DISTANCE_MAX) {
-			
-			//LCD.drawString("dis:  " + distance, 0, 4);
-			//LCD.drawString("prev: " + distance_prev, 0, 5);
-			
+
+			// Stop when current distance is greater than previous distance BUT already
+			// traveled distance is > 0.2
+
 			if (distance > distance_prev && pose_start.distanceTo(navigation.getPose().getLocation()) > 0.2) {
 				state_setPose = State_SetPose.TURN_TO_HEADING;
 
@@ -439,50 +443,38 @@ public class ControlRST implements IControl {
 
 				setVelocity(0);
 			}
-			
-			distance_prev = distance;
-			
 
+			distance_prev = distance;
+
+			// correct possible deviation
 			update_lateralControl();
 
 			break;
 		case TURN_TO_HEADING:
+			// Turn as long as difference of current angle and destination heading is too
+			// large.
+			// Angular velocity is set based on which way to turn is shorter.
 
 			angl_dest = pose_destination.getHeading();
 			angl_current = Math.toDegrees(navigation.getPose().getHeading()) % 360;
 
-			/*
-			 * if (Math.abs(angl_dest - angl_current) <= DIFF_HEADING_MAX) { state_setPose =
-			 * State_SetPose.IDLE; setAngularVelocity(0);
-			 * 
-			 * setVelocity(0); }
-			 */
-
 			if (angl_dest - angl_current >= DIFF_HEADING_MAX) {
 				setAngularVelocity(w0);
-				//LCD.drawString(">", 0, 6);
+				// LCD.drawString(">", 0, 6);
 			} else if (angl_current - angl_dest >= DIFF_HEADING_MAX) {
 				setAngularVelocity(-w0);
-				//LCD.drawString("<", 0, 6);
+				// LCD.drawString("<", 0, 6);
 			} else {
 				state_setPose = State_SetPose.IDLE;
-				
+
 				setAngularVelocity(0);
 				setVelocity(0);
-				
+
+				// Used for Verteidung Demo programs
+
 				Test_Vert2_1.notify_setPose_ready();
 				Test_Vert2_2.notify_setPose_ready();
 			}
-			
-
-			//LCD.drawString("Dest: " + angl_dest, 0, 4);
-			//LCD.drawString("Cur:" + angl_current, 0, 5);
-
-			/*
-			 * LCD.clear(); Test_SetPose.showData(navigation, perception);
-			 * LCD.drawString("agl_d=" + angl_dest, 0, 4); LCD.drawString("agl_c=" +
-			 * angl_current, 0, 5);
-			 */
 
 			break;
 
@@ -508,6 +500,9 @@ public class ControlRST implements IControl {
 
 		if (path_park != null) {
 
+			// Had to write this ugly code because there was some problem with the
+			// coordinates. But it works, so I'll let it be.
+
 			if (path_park.getEndT() >= 0) {
 				setVelocity(path_park.calc_v(t));
 
@@ -531,6 +526,8 @@ public class ControlRST implements IControl {
 			LCD.drawString("v = " + path_park.calc_v(t), 0, 1);
 			LCD.drawString("x = " + path_park.calc_x(t), 0, 2);
 
+			// Stop when max duration has been reached.
+
 			if (t > Math.abs(path_park.T) / path_park.getVelocity()) {
 				path_park = null;
 
@@ -539,7 +536,7 @@ public class ControlRST implements IControl {
 
 				setCtrlMode(ControlMode.INACTIVE);
 				Test_PathFollow.ctrl_ready = true;
-				
+
 				Test_Vert2_2.notify_setPose_ready();
 
 			}
@@ -582,37 +579,37 @@ public class ControlRST implements IControl {
 		vel_ang = PIDController.pid_ctrl(data_sensor);
 
 		setAngularVelocity(vel_ang);
-		
+
 		Test_Vert2_1.showData(navigation, perception);
 	}
 
 	private void stop() {
 		this.leftMotor.stop();
 		this.rightMotor.stop();
-		
-		
 
 	}
 
 	long ms_lastVelocityUpdate = 0;
 
-
 	/**
-	 * calculates the left and right angle speed of the both motors with given
-	 * velocity and angle velocity of the robot
+	 * Calculates the left and right angle speed of the both motors with given
+	 * velocity and angle velocity of the robot. In setPose mode velocity is
+	 * smoothed out by a time dependent factor.
 	 * 
 	 * @param v [m/s] velocity of the robot
 	 * @param w [deg/s] angle velocity of the robot
 	 */
-	
+
 	private void drive(double v, double w) {
-		//double factor_smooth = (1 - Math.exp(- (double) (System.currentTimeMillis() - ms_lastVelocityUpdate) / (double) 200));
+		// double factor_smooth = (1 - Math.exp(- (double) (System.currentTimeMillis() -
+		// ms_lastVelocityUpdate) / (double) 200));
 		double factor_smooth = 1;
-		
+
 		if (currentCTRLMODE == ControlMode.SETPOSE) {
-			factor_smooth = (1 - Math.exp(- (double) (System.currentTimeMillis() - ms_lastVelocityUpdate) / (double) 100));
+			factor_smooth = (1
+					- Math.exp(-(double) (System.currentTimeMillis() - ms_lastVelocityUpdate) / (double) 100));
 		}
-		
+
 		double w_radPms = w * Math.PI / 180;
 		double v_mmPs = v * 1000 * factor_smooth;
 
