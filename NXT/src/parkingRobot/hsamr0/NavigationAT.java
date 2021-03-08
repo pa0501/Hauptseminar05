@@ -322,7 +322,7 @@ public class NavigationAT implements INavigation{
 	  int i = 0;
 
 	private void detectParkingSlot(){
-		monitor.writeNavigationComment("X =" + frontSideSensorDistance);
+		//monitor.writeNavigationComment("X =" + frontSideSensorDistance);
 		
 		ParkingSlot parkingslot;    
 		if (this.frontSideSensorDistance > 5) {
