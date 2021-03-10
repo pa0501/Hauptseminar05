@@ -188,8 +188,8 @@ public class ControlRST implements IControl {
 	 * 
 	 * @see parkingRobot.IControl#setDestination(double heading, double x, double y)
 	 * @param heading [rad] target heading relative to starting point
-	 * @param x [m] target x position relative to starting point
-	 * @param y [m] target y position relative to starting point
+	 * @param x       [m] target x position relative to starting point
+	 * @param y       [m] target y position relative to starting point
 	 */
 	public void setDestination(double heading, double x, double y) {
 		this.pose_destination.setHeading((float) heading);
@@ -209,8 +209,8 @@ public class ControlRST implements IControl {
 	 * 
 	 * @see parkingRobot.IControl#setPose(Pose currentPosition)
 	 * @param heading [rad] absolute target heading
-	 * @param x [m] absolute target x position
-	 * @param y [m] absolute target y position
+	 * @param x       [m] absolute target x position
+	 * @param y       [m] absolute target y position
 	 */
 	public void setPose(Pose pose) {
 		// Pose can't be assigned directly because of Java's way of copying by reference
@@ -495,6 +495,9 @@ public class ControlRST implements IControl {
 	/**
 	 * PARKING along the generated path
 	 */
+
+	double heading_prev = 0;
+
 	private void exec_PARKCTRL_ALGO() {
 		double t = (double) (System.currentTimeMillis() - lastTime) / 1000d;
 
@@ -526,20 +529,26 @@ public class ControlRST implements IControl {
 			LCD.drawString("v = " + path_park.calc_v(t), 0, 1);
 			LCD.drawString("x = " + path_park.calc_x(t), 0, 2);
 
-			// Stop when max duration has been reached.
+			// When max duration has been reached, check if previous absolute w is less than
+			// calculated w. If that is the case, stop parking sequence.
 
 			if (t > Math.abs(path_park.T) / path_park.getVelocity()) {
-				path_park = null;
+				// Safeguard based on time.
+				if (Math.abs(path_park.calc_w(t)) > heading_prev || t > Math.abs(path_park.T) / path_park.getVelocity() + 1) {
+					path_park = null;
 
-				setVelocity(0);
-				setAngularVelocity(0);
+					setVelocity(0);
+					setAngularVelocity(0);
 
-				setCtrlMode(ControlMode.INACTIVE);
-				Test_PathFollow.ctrl_ready = true;
+					setCtrlMode(ControlMode.INACTIVE);
+					Test_PathFollow.ctrl_ready = true;
 
-				Test_Vert2_2.notify_setPose_ready();
-
+					Test_Vert2_2.notify_setPose_ready();
+				} else {
+					heading_prev = Math.abs(path_park.calc_w(t));
+				}
 			}
+
 		}
 	}
 
