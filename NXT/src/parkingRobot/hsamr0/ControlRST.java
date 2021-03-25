@@ -104,7 +104,7 @@ public class ControlRST implements IControl {
 	double Distance = 0.0;
 
 	double radius_tire_mm = 280; // previously 225
-	double distance_tires_mm = 120;
+	double distance_tires_mm = 120; 
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -235,9 +235,13 @@ public class ControlRST implements IControl {
 
 		setStartTime(System.currentTimeMillis());
 
-		data_left.integral = 0;
-		data_right.integral = 0;
-		data_sensor.integral = 0;
+		if (ctrl_mode == ControlMode.INACTIVE) {
+
+			data_left.integral = 0;
+			data_right.integral = 0;
+			data_sensor.integral = 0;
+		}
+		
 
 		this.currentCTRLMODE = ctrl_mode;
 	}
@@ -554,7 +558,12 @@ public class ControlRST implements IControl {
 
 	private void exec_INACTIVE() {
 		this.stop();
-
+		
+	}
+	
+	private void exec_VW_CTRL() {
+		this.stop();
+		
 	}
 
 	double vel_line = 0.1;

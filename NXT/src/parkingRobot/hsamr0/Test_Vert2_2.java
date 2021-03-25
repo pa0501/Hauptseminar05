@@ -132,7 +132,7 @@ public class Test_Vert2_2 {
 		monitor.startLogging();
 		
 		double distance_prev = 0;
-		Pose pose_destination = new Pose(0.7f, 0.0f, 0);
+		Pose pose_destination = new Pose(1.70f, 0.0f, 0);
 		
 		
 		index_setPose = 0;
@@ -237,8 +237,10 @@ public class Test_Vert2_2 {
 					//control.setStartTime(System.currentTimeMillis());
 					
 					Pose pose_corner = new Pose(navigation.getPose().getX(), navigation.getPose().getY(), navigation.getPose().getHeading());
-					pose_corner.translate(0.02f, -0.2f);
-					pose_corner.rotateUpdate(-90);
+					pose_corner.translate(0.02f, 0.2f);
+					//pose_corner.rotateUpdate(90);
+					pose_corner.setHeading(90);
+					
 	
 					
 					control.setPose(pose_corner);
@@ -260,7 +262,7 @@ public class Test_Vert2_2 {
 						currentStatus = CurrentStatus.DRIVING;
 						
 						control.setVelocity(0.05);
-						control.setDestination(0, 0.4f, 0.3f);
+						control.setDestination(0, -0.4f, 0.3f);
 						control.setStartTime((int) System.currentTimeMillis());
 						control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
 						
@@ -283,7 +285,8 @@ public class Test_Vert2_2 {
 						currentStatus = CurrentStatus.DRIVING;
 						
 						control.setVelocity(0.05);
-						control.setDestination(0, -0.4f, -0.3f);
+						//control.setDestination(0, 0.3f, -0.3f);
+						control.setDestination(0, 0.3f, -0.3f);
 						control.setStartTime((int) System.currentTimeMillis());
 						control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
 						
