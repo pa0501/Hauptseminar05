@@ -2,3 +2,5 @@ bin/
 *.nxj
 *.nxd
 .classpath
+doc/
+doc-orig/
