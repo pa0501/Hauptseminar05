@@ -273,6 +273,7 @@ public class ControlRST implements IControl {
 			break;
 		case PARK_CTRL:
 			exec_PARKCTRL_ALGO();
+			//checkCorner();
 			break;
 		case INACTIVE:
 			exec_INACTIVE();
@@ -477,6 +478,7 @@ public class ControlRST implements IControl {
 
 				Test_Vert2_1.notify_setPose_ready();
 				Test_Vert2_2.notify_setPose_ready();
+				Test_Vert2.notify_setPose_ready();
 			}
 
 			break;
@@ -548,6 +550,7 @@ public class ControlRST implements IControl {
 					Test_PathFollow.ctrl_ready = true;
 
 					Test_Vert2_2.notify_setPose_ready();
+					Test_Vert2.notify_setPose_ready();
 				} else {
 					heading_prev = Math.abs(path_park.calc_w(t));
 				}
@@ -666,7 +669,7 @@ public class ControlRST implements IControl {
 				float heading = navigation.getPose().getHeading();
 				
 				heading_beforeClamp = clamp(heading);
-				navigation.getPose().setHeading(heading);
+				//navigation.getPose().setHeading(heading);
 			}
 		} else {
 
