@@ -136,13 +136,14 @@ public class Test_PathFollow {
 		
 		control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
 		
+
 		
 
 		LCD.clear();
 
 		while (true) {
-			if (ctrl_ready == true) {
-				ctrl_ready = false;
+			//if (ctrl_ready == true) {
+				/*ctrl_ready = false;
 				
 				dest_x = -dest_x;
 				dest_y = -dest_y;
@@ -150,14 +151,38 @@ public class Test_PathFollow {
 				control.setVelocity(0.05);
 				control.setDestination(0, dest_x, dest_y);
 				control.setStartTime((int) System.currentTimeMillis());
-				control.setCtrlMode(ControlMode.PARK_CTRL);
+				control.setCtrlMode(ControlMode.PARK_CTRL);*/
+				
+				ctrl_ready = false;
+				
+				control.setCtrlMode(ControlMode.VW_CTRL);
+				
+
+				control.setVelocity(0.05);
+				control.setAngularVelocity(0);
+				
+			//}
+			
+			if (Button.LEFT.isDown()) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+				
+			}
+			
+			if (Button.RIGHT.isDown()) {
+				control.setVelocity(-0.05);
+				control.setAngularVelocity(0);
+				control.setCtrlMode(ControlMode.VW_CTRL);
+				
 			}
 			
 			if (Button.ESCAPE.isDown()) {
-				System.exit(0);
-				;
+				break;
 			}
 		}
+		
+		Button.ESCAPE.waitForPressAndRelease();
+		
+		System.exit(0);
 	}
 
 	/**

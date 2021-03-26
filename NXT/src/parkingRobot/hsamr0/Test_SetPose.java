@@ -123,20 +123,26 @@ public class Test_SetPose {
 		monitor.startLogging();
 
 		control.setVelocity(0.2);
-
+		control.setAngularVelocity(15);
+		
 		// Beispielhaft die Endposition, wenn der Roboter mit Sensor 1 das Hindernis
 		// sieht und nach vorne einparkt
 		control.setPose(new Pose(1f, 1f, 0));
 		control.setCtrlMode(IControl.ControlMode.SETPOSE);
 
 		
+		
 
 		while (true) {
-			if (Button.ESCAPE.isDown()) {
-				System.exit(0);
-				;
+			if (Button.LEFT.isDown()) {
+				control.setCtrlMode(ControlMode.INACTIVE);
+				break;
 			}
 		}
+		
+		Button.ESCAPE.waitForPressAndRelease();
+		
+		System.exit(0);
 	}
 
 	/**

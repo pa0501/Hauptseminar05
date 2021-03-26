@@ -158,7 +158,6 @@ public class Test_Vert2_2 {
 					break;
 
 				case 1:
-					
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						
@@ -212,12 +211,18 @@ public class Test_Vert2_2 {
 					
 					double distance = navigation.getPose().distanceTo(pose_destination.getLocation());
 					
-					if (pose_atStartOfBlock.distanceTo(navigation.getPose().getLocation()) > 0.05f) {
+					/*if (pose_atStartOfBlock.distanceTo(navigation.getPose().getLocation()) > 0.05f) {
 						if (distance_prev < distance) {
 							notify_setPose_ready();
 							control.setCtrlMode(ControlMode.INACTIVE);
 							currentStatus = CurrentStatus.INACTIVE;
 						}
+					}*/
+					
+					if (Math.toDegrees(navigation.getPose().getHeading()) >= 80) {
+						notify_setPose_ready(); 
+						//control.setCtrlMode(ControlMode.INACTIVE);
+						//currentStatus = CurrentStatus.INACTIVE;
 					}
 					
 					distance_prev = distance;
@@ -227,8 +232,19 @@ public class Test_Vert2_2 {
 					
 					break;
 				
-					
 				case 6:
+					
+					if (System.currentTimeMillis() - ms_start > 800) {
+						notify_setPose_ready();
+						index_setPose = 8; 
+						control.setCtrlMode(ControlMode.INACTIVE);
+						
+					}
+					
+					
+					break;
+					
+				case 7:
 					setPose_ready = false;
 
 					control.setVelocity(0.1);
@@ -237,7 +253,7 @@ public class Test_Vert2_2 {
 					//control.setStartTime(System.currentTimeMillis());
 					
 					Pose pose_corner = new Pose(navigation.getPose().getX(), navigation.getPose().getY(), navigation.getPose().getHeading());
-					pose_corner.translate(0.02f, 0.2f);
+					pose_corner.translate(0.02f, 0.01f);
 					//pose_corner.rotateUpdate(90);
 					pose_corner.setHeading(90);
 					
@@ -246,16 +262,17 @@ public class Test_Vert2_2 {
 					control.setPose(pose_corner);
 					control.setCtrlMode(IControl.ControlMode.SETPOSE);
 					
+					
 					break;
 					
-				case 7:
+				case 8:
 					if (System.currentTimeMillis() - ms_start > 1000) {
 						notify_setPose_ready();
 					}
 					
 					break;
 					
-				case 8:
+				case 9:
 					setPose_ready = false;
 					
 					if (currentStatus != CurrentStatus.DRIVING) {
@@ -271,14 +288,14 @@ public class Test_Vert2_2 {
 					
 					break;
 					
-				case 9:
+				case 10:
 					if (System.currentTimeMillis() - ms_start > 1000) {
 						notify_setPose_ready();
 					}
 					
 					break;
 					
-				case 10:
+				case 11:
 					setPose_ready = false;
 					
 					if (currentStatus != CurrentStatus.DRIVING) {
@@ -286,7 +303,7 @@ public class Test_Vert2_2 {
 						
 						control.setVelocity(0.05);
 						//control.setDestination(0, 0.3f, -0.3f);
-						control.setDestination(0, 0.3f, -0.3f);
+						control.setDestination(0, 0.4f, -0.3f);
 						control.setStartTime((int) System.currentTimeMillis());
 						control.setCtrlMode(IControl.ControlMode.PARK_CTRL);
 						
@@ -296,7 +313,7 @@ public class Test_Vert2_2 {
 					break;
 					
 					
-				case 11:
+				case 12:
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						control.setCtrlMode(IControl.ControlMode.LINE_CTRL);
@@ -367,6 +384,6 @@ public class Test_Vert2_2 {
 		
 		ms_start = System.currentTimeMillis();
 		index_setPose++;
-		setPose_ready = true;
+		setPose_ready = true; 
 	}
 }

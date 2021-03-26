@@ -102,6 +102,8 @@ public class Test_Vert2_1 {
 	static boolean setPose_ready = true;
 	
 	static long ms_start = 0;
+	
+	static double distance_prev = 0;
 
 	/**
 	 * main method of project 'ParkingRobot'
@@ -128,8 +130,7 @@ public class Test_Vert2_1 {
 
 		monitor.startLogging();
 		
-		double distance_prev = 0;
-		Pose pose_destination = new Pose(0.8f, 0.0f, 0f);
+		Pose pose_destination = new Pose(0.4f, -0.5f, 0f);
 		
 		index_setPose = 0;
 		
@@ -159,7 +160,7 @@ public class Test_Vert2_1 {
 					control.setVelocity(0.05);
 					control.setAngularVelocity(30);
 
-					control.setPose(new Pose(1.2f, 0.3f, 180));
+					control.setPose(new Pose(1.2f, 0.30f, 0));
 					control.setCtrlMode(IControl.ControlMode.SETPOSE);
 					
 					break;
@@ -174,7 +175,7 @@ public class Test_Vert2_1 {
 					
 					double distance = navigation.getPose().distanceTo(pose_destination.getLocation());
 					
-					if (distance < 0.3f) {
+					if (distance < 1f) {
 						if (distance_prev < distance) {
 							notify_setPose_ready();
 							control.setCtrlMode(ControlMode.INACTIVE);
@@ -192,6 +193,26 @@ public class Test_Vert2_1 {
 					
 					break;
 				case 4:
+					setPose_ready = false;
+					
+					control.setVelocity(0.1);
+					control.setAngularVelocity(50);
+					
+					//control.setStartTime(System.currentTimeMillis());
+					
+					Pose pose = navigation.getPose();
+					
+					Pose pose_next = new Pose(pose.getX(), pose.getY(), pose.getHeading());
+					
+					pose_next.translate(0.2f, 0.1f);
+					pose_next.rotateUpdate(30);
+					control.setPose(pose_next);
+					//control.setPose(new Pose(0.2f, 0f, 0f));
+					control.setCtrlMode(IControl.ControlMode.SETPOSE);
+					
+					
+					break;
+				case 5:
 					if (currentStatus != CurrentStatus.DRIVING) {
 						currentStatus = CurrentStatus.DRIVING;
 						
@@ -242,6 +263,7 @@ public class Test_Vert2_1 {
 		// 180), 0, 2);
 
 		LCD.drawString("Phi (grd): " + (navigation.getPose().getHeading() / Math.PI * 180), 0, 2);
+		LCD.drawString("distance_prev: " + distance_prev, 0, 3);
 
 //		perception.showSensorData();
 
