@@ -60,6 +60,11 @@ public class HmiReaderThread extends Thread{
 		{
 			// Careful: the read*() methods are blocking!
 			code = hmi.dataIn.readInt();
+			
+			if (Command.values().length >= code) {
+				return;
+			}
+			
 			Command command = Command.values()[code];
 			if (command == Command.IN_SET_MODE) {
 				int imode = hmi.dataIn.readInt();
