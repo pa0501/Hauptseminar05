@@ -104,7 +104,7 @@ public class ControlRST implements IControl {
 	double Distance = 0.0;
 
 	double radius_tire_mm = 280; // previously 225
-	double distance_tires_mm = 120; 
+	double distance_tires_mm = 120;
 
 	/**
 	 * provides the reference transfer so that the class knows its corresponding
@@ -241,7 +241,6 @@ public class ControlRST implements IControl {
 			data_right.integral = 0;
 			data_sensor.integral = 0;
 		}
-		
 
 		this.currentCTRLMODE = ctrl_mode;
 	}
@@ -538,7 +537,8 @@ public class ControlRST implements IControl {
 
 			if (t > Math.abs(path_park.T) / path_park.getVelocity()) {
 				// Safeguard based on time.
-				if (Math.abs(path_park.calc_w(t)) > heading_prev || t > Math.abs(path_park.T) / path_park.getVelocity() + 1) {
+				if (Math.abs(path_park.calc_w(t)) > heading_prev
+						|| t > Math.abs(path_park.T) / path_park.getVelocity() + 1) {
 					path_park = null;
 
 					setVelocity(0);
@@ -558,12 +558,12 @@ public class ControlRST implements IControl {
 
 	private void exec_INACTIVE() {
 		this.stop();
-		
+
 	}
-	
+
 	private void exec_VW_CTRL() {
 		this.stop();
-		
+
 	}
 
 	double vel_line = 0.1;
@@ -650,5 +650,34 @@ public class ControlRST implements IControl {
 
 	private int getPowerForW_M2(double w) {
 		return (int) (1 / 8.67 * (w + 8));
+	}
+
+	long ms_lastCorner = 0;
+	
+	float heading_beforeClamp = 0;
+
+	private void checkCorner() {
+
+		if (ms_lastCorner == 0) {
+			if (System.currentTimeMillis() - ms_lastCorner > 2000) {
+				Sound.beep();
+				ms_lastCorner = 0;
+				
+				float heading = navigation.getPose().getHeading();
+				
+				heading_beforeClamp = clamp(heading);
+				navigation.getPose().setHeading(heading);
+			}
+		} else {
+
+			if (Math.abs(navigation.getPose().getHeading() - heading_beforeClamp) > 70) {
+				ms_lastCorner = System.currentTimeMillis();
+			}
+		}
+
+	}
+
+	private float clamp(float angle) {
+		return Math.round(angle / 90) * 90;
 	}
 }
