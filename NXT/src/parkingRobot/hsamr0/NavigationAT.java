@@ -257,6 +257,8 @@ public class NavigationAT implements INavigation{
 			yResult			= this.pose.getY();
 			angleResult 	= this.pose.getHeading();
 			
+			
+			
 			//monitor.writeNavigationComment("robot don't move");
 		} else if (R.isInfinite()) { //robot moves straight forward/backward, vLeft==vRight
 			xResult			= this.pose.getX() + vLeft * Math.cos(this.pose.getHeading()) * deltaT;
